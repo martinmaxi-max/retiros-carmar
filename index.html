@@ -140,6 +140,7 @@ nav svg{width:23px;height:23px}
       <div class="err" id="loginErr"></div>
       <button class="btn" type="submit" id="loginBtn">Ingresar</button>
     </form>
+    <a href="ayuda.html" style="display:block;text-align:center;margin-top:16px;color:var(--navy2);font-weight:600;text-decoration:none">¿Cómo se usa? Ver la ayuda</a>
   </div>
 </section>
 
@@ -164,6 +165,7 @@ nav svg{width:23px;height:23px}
     <div class="hrow">
       <div><div class="hello" id="hHello">Hola</div><div class="who" id="hWho">—</div></div>
       <div style="display:flex;gap:8px">
+        <a class="iconbtn" title="Ayuda" href="ayuda.html" style="text-decoration:none;font-weight:800;font-size:19px">?</a>
         <button class="iconbtn" title="Cambiar clave" onclick="App.openPass()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
         <button class="iconbtn" title="Salir" onclick="App.logout()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
       </div>
@@ -189,16 +191,18 @@ nav svg{width:23px;height:23px}
    Mientras apiKey diga "TU_API_KEY" la app corre en MODO DEMO.
    ===================================================================== */
 const FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCo-AHx4CTPERAxEJ7oq9N696nhjTGb8Ug",
+  authDomain: "carmar-apps.firebaseapp.com",
+  databaseURL: "https://carmar-apps-default-rtdb.firebaseio.com",
+  projectId: "carmar-apps",
+  storageBucket: "carmar-apps.firebasestorage.app",
+  messagingSenderId: "261163189274",
+  appId: "1:261163189274:web:3bdfdbe7b8b6bcabb6bda3"
 };
 // Dominio "ficticio" para convertir usuario -> email de Firebase (rodi -> rodi@carmar-retiros.app)
 const DOMINIO = "carmar-retiros.app";
+// Carpeta de esta app dentro del proyecto Firebase compartido (todas las rutas cuelgan de acá)
+const RAIZ = "retiros";
 
 const DEFAULT_PERSONAS = {
   maxi:{nombre:"Maximiliano Martin",corto:"Maxi",sabados:true,orden:1,grupo:"socio"},
@@ -233,7 +237,8 @@ const DEMO = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("TU_")
 const API = (()=>{
   if(!DEMO){
     firebase.initializeApp(FIREBASE_CONFIG);
-    const auth=firebase.auth(), db=firebase.database();
+    const auth=firebase.auth(), db0=firebase.database();
+    const db={ref:p=>db0.ref(RAIZ+(p&&p!=="/"?"/"+p:""))};
     let sec=null;
     return {
       onAuth:cb=>auth.onAuthStateChanged(u=>cb(u?{uid:u.uid,email:u.email}:null)),
