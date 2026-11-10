@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Retiros">
+<title>Retiros CARMAR</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a44'/%3E%3Ctext x='32' y='43' font-size='30' text-anchor='middle' fill='%23f2b544' font-family='Arial' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --navy:#0f2a44;--navy2:#173a5c;--gold:#f2b544;--bg:#f3f5f8;--card:#fff;--ink:#14212e;--muted:#6b7a89;
+  --line:#e3e8ee;--pos:#127a4a;--pos-bg:#e5f5ec;--neg:#c0392b;--neg-bg:#fbeaea;--warn:#b26a00;--warn-bg:#fff3dc;
+  --r:14px;--shadow:0 1px 3px rgba(15,42,68,.08),0 4px 14px rgba(15,42,68,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px}
+button,input,select{font:inherit;color:inherit}
+.hidden{display:none!important}
+/* ---------- Login ---------- */
+#login{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:24px;background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 100%)}
+.login-card{background:#fff;border-radius:20px;padding:28px 22px;max-width:380px;width:100%;margin:0 auto;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.brand .logo{width:46px;height:46px;border-radius:12px;background:var(--navy);color:var(--gold);display:grid;place-items:center;font-weight:800;font-size:22px}
+.brand h1{font-size:19px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}
+input,select{width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font-size:16px;outline:none}
+input:focus,select:focus{border-color:var(--navy2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:11px;padding:13px 16px;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;width:100%;font-size:15px}
+.btn:active{transform:scale(.98)}
+.btn.sec{background:#e9eef4;color:var(--navy)}
+.btn.danger{background:var(--neg-bg);color:var(--neg)}
+.btn.small{width:auto;padding:8px 12px;font-size:13px;border-radius:9px}
+.err{color:var(--neg);font-size:13px;margin-top:10px;min-height:18px}
+.demo-tag{background:var(--warn-bg);color:var(--warn);font-size:12px;padding:8px 10px;border-radius:9px;margin-bottom:12px}
+/* ---------- App shell ---------- */
+header{background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;position:sticky;top:0;z-index:20}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hello{font-size:13px;opacity:.75}.who{font-size:18px;font-weight:700}
+.iconbtn{background:rgba(255,255,255,.12);border:0;color:#fff;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;cursor:pointer}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:0;border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+.chip.on{background:var(--gold);color:var(--navy)}
+.chips.light .chip{background:#e6ebf1;color:var(--navy)}
+.chips.light .chip.on{background:var(--navy);color:#fff}
+main{padding:14px 14px calc(90px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.hero .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.hero .big{font-size:30px;font-weight:800;margin:4px 0 2px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero .sub{font-size:13px;font-weight:600}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stat{background:var(--bg);border-radius:10px;padding:10px}
+.stat .k{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-size:15px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .d{font-size:11px;color:var(--muted);margin-top:1px}
+.month{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px;display:flex;justify-content:space-between}
+.list{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row.tap{cursor:pointer}.row.tap:active{background:#f7f9fb}
+.day{width:38px;flex:0 0 38px;text-align:center;line-height:1.05}
+.day b{display:block;font-size:17px}.day span{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.mid{flex:1;min-width:0}
+.mid .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mid .s{font-size:12px;color:var(--muted);margin-top:2px}
+.amt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt .a{font-weight:700}.amt .b{font-size:11px;color:var(--muted);margin-top:2px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.b-ok{background:var(--pos-bg);color:var(--pos)}.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-grey{background:#eef1f4;color:var(--muted)}.b-blue{background:#e4eefa;color:#1d5fa8}
+.row.me{box-shadow:inset 3px 0 0 var(--gold)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
+/* nav */
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:30}
+nav button{flex:1;border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
+nav button.on{color:var(--navy)}
+nav svg{width:23px;height:23px}
+.fab{position:fixed;right:18px;bottom:calc(78px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px;background:var(--gold);color:var(--navy);border:0;box-shadow:0 8px 20px rgba(0,0,0,.2);font-size:30px;font-weight:700;cursor:pointer;z-index:25;display:grid;place-items:center}
+/* sheet */
+.overlay{position:fixed;inset:0;background:rgba(10,20,30,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .2s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.grab{width:40px;height:4px;background:#d5dce4;border-radius:4px;margin:6px auto 12px}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.seg{display:flex;background:#eef1f4;border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:9px 6px;border-radius:9px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{margin:0;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px;background:#eef1f4;padding:8px 11px;border-radius:9px}
+.checks input{width:auto}
+.actions{display:flex;gap:10px;margin-top:18px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:90;max-width:90%}
+.adm h4{margin:0 0 4px;font-size:15px}.adm p{margin:0 0 12px;color:var(--muted);font-size:13px}
+.urow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.urow:last-child{border-bottom:0}
+.sigbox{position:relative;border:2px dashed #c9d3de;border-radius:12px;background:#fff;height:170px}
+.sigbox.on{border-style:solid;border-color:var(--navy2)}
+.sigbox canvas{width:100%;height:100%;display:block;touch-action:none;border-radius:12px}
+.sigclr{position:absolute;top:6px;right:6px}
+.sighint{position:absolute;left:12px;bottom:8px;font-size:12px;color:#a0acb8;pointer-events:none}
+.sigbox.on .sighint{display:none}
+.vale{border:2px solid #111;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+.vale-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 12px;border-bottom:1.5px solid #111}
+.vale-t{font-size:14px;font-weight:600;letter-spacing:.01em;line-height:1.25}
+.vale-n{font-size:13px;white-space:nowrap}.vale-n span{font-family:"Courier New",monospace;font-size:19px;font-weight:700;letter-spacing:.05em}
+.vale-g{display:grid;grid-template-columns:38% 62%}
+.vale-k,.vale-v{border-bottom:1.5px solid #111;padding:12px 10px;min-height:46px;display:flex;flex-direction:column;justify-content:center}
+.vale-k{border-right:1.5px solid #111;font-size:13px;font-weight:600}
+.vale-v{font-size:15px}
+.vale-g>div:nth-last-child(-n+2){border-bottom:0}
+.vale-l{font-size:11px;color:#444;margin-top:3px;line-height:1.3}
+.vale-f{align-items:center;min-height:84px;padding:4px}.vale-f img{max-height:80px;max-width:100%}
+.vale-pend{color:var(--warn);font-weight:700;font-size:13px}
+.vale-pie{border-top:1.5px solid #111;padding:6px 10px;font-size:10.5px;color:#555}
+#printArea{display:none}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;padding:20px}#printArea .vale{max-width:600px;margin:0 auto}}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:100;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">Cargando…</div>
+
+<!-- ================= LOGIN ================= -->
+<section id="login" class="hidden">
+  <div class="login-card">
+    <div class="brand"><div class="logo">$</div><div><h1>Retiros y Vacaciones</h1><p>Carlos Martin e Hijos S.A.</p></div></div>
+    <div id="demoTag" class="demo-tag hidden">Modo demostración: Firebase no está configurado. Los datos no se guardan.</div>
+    <form id="loginForm" autocomplete="on">
+      <label for="lu">Usuario</label>
+      <input id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="ej: rodi">
+      <label for="lp">Clave</label>
+      <input id="lp" type="password" autocomplete="current-password">
+      <div class="err" id="loginErr"></div>
+      <button class="btn" type="submit" id="loginBtn">Ingresar</button>
+    </form>
+  </div>
+</section>
+
+<!-- ================= SIN PERMISOS / BOOTSTRAP ================= -->
+<section id="noRole" class="hidden" style="padding:30px 20px;max-width:420px;margin:0 auto">
+  <div class="card">
+    <h3 style="margin-top:0">Usuario sin permisos</h3>
+    <p style="color:var(--muted)">Tu usuario existe pero todavía no tiene una persona asignada. Pedile al administrador que te habilite.</p>
+    <div id="bootBox" class="hidden">
+      <p style="color:var(--muted);font-size:13px">¿Es la primera vez que se configura la app? Si sos el administrador, tocá el botón. Solo funciona mientras no haya ningún administrador cargado.</p>
+      <button class="btn" id="bootBtn">Configurarme como administrador</button>
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn sec" onclick="App.logout()">Salir</button>
+    <div class="err" id="bootErr"></div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="app" class="hidden">
+  <header>
+    <div class="hrow">
+      <div><div class="hello" id="hHello">Hola</div><div class="who" id="hWho">—</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="iconbtn" title="Cambiar clave" onclick="App.openPass()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+        <button class="iconbtn" title="Salir" onclick="App.logout()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
+      </div>
+    </div>
+    <div class="chips hidden" id="personaChips"></div>
+  </header>
+  <main id="view"></main>
+  <button class="fab hidden" id="fab" onclick="App.fab()">+</button>
+  <nav id="nav"></nav>
+</section>
+
+<div id="sheetRoot"></div>
+<div id="printArea"></div>
+
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =====================================================================
+   CONFIGURACIÓN — pegá acá la config de tu proyecto Firebase
+   (Consola Firebase > Configuración del proyecto > Tus apps > Web)
+   Mientras apiKey diga "TU_API_KEY" la app corre en MODO DEMO.
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "",
+  appId: ""
+};
+// Dominio "ficticio" para convertir usuario -> email de Firebase (rodi -> rodi@carmar-retiros.app)
+const DOMINIO = "carmar-retiros.app";
+
+const DEFAULT_PERSONAS = {
+  maxi:{nombre:"Maximiliano Martin",corto:"Maxi",sabados:true,orden:1,grupo:"socio"},
+  rodi:{nombre:"Rodolfo Martin",corto:"Rodi",sabados:true,orden:2,grupo:"socio"},
+  carlitos:{nombre:"Carlos Martin (H)",corto:"Carlitos",sabados:true,orden:3,grupo:"socio"},
+  franco:{nombre:"Franco Martin",corto:"Franco",sabados:false,orden:4,grupo:"hijo"},
+  agos:{nombre:"Agostina Martin",corto:"Agos",sabados:false,orden:5,grupo:"hijo"},
+  mati:{nombre:"Matias Martin",corto:"Mati",sabados:false,orden:6,grupo:"hijo"}
+};
+const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
+const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
+const DIAS_SOCIO=20, DIAS_HIJO=15, HORAS_POR_DIA=8;
+// Feriados nacionales (inamovibles + trasladables ya movidos). Editables desde Admin.
+const FERIADOS_DEFAULT={
+ "2025-01-01":"Año Nuevo","2025-03-03":"Carnaval","2025-03-04":"Carnaval","2025-03-24":"Día de la Memoria","2025-04-02":"Malvinas","2025-04-18":"Viernes Santo",
+ "2025-05-01":"Día del Trabajador","2025-05-25":"Revolución de Mayo","2025-06-16":"Güemes","2025-06-20":"Belgrano","2025-07-09":"Independencia",
+ "2025-08-17":"San Martín","2025-10-12":"Diversidad Cultural","2025-11-24":"Soberanía Nacional","2025-12-08":"Inmaculada Concepción","2025-12-25":"Navidad",
+ "2026-01-01":"Año Nuevo","2026-02-16":"Carnaval","2026-02-17":"Carnaval","2026-03-24":"Día de la Memoria","2026-04-02":"Malvinas","2026-04-03":"Viernes Santo",
+ "2026-05-01":"Día del Trabajador","2026-05-25":"Revolución de Mayo","2026-06-15":"Güemes","2026-06-20":"Belgrano","2026-07-09":"Independencia",
+ "2026-08-17":"San Martín","2026-10-12":"Diversidad Cultural","2026-11-23":"Soberanía Nacional","2026-12-08":"Inmaculada Concepción","2026-12-25":"Navidad",
+ "2027-01-01":"Año Nuevo","2027-02-08":"Carnaval","2027-02-09":"Carnaval","2027-03-24":"Día de la Memoria","2027-03-26":"Viernes Santo","2027-04-02":"Malvinas",
+ "2027-05-01":"Día del Trabajador","2027-05-25":"Revolución de Mayo","2027-06-20":"Belgrano","2027-06-21":"Güemes","2027-07-09":"Independencia",
+ "2027-08-16":"San Martín","2027-10-11":"Diversidad Cultural","2027-11-20":"Soberanía Nacional","2027-12-08":"Inmaculada Concepción","2027-12-25":"Navidad"};
+const CALC_CAMPOS=[
+  ["ventas","contadoControl","Contado Control"],["ventas","contadoCMSA","Contado CMSA"],
+  ["ventas","ncControl","NC Control",true],["ventas","ncCMSA","NC CMSA",true],
+  ["cobranzas","ctaCteControl","Cuenta Corriente Control"],["cobranzas","ctaCteClientes","Cuenta Corriente Clientes"],
+  ["cobranzas","ncCarMar","NC Car Mar",true],["cobranzas","ncCobControl","NC Control",true]];
+const DEMO = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("TU_");
+
+/* ===================== Capa de datos ===================== */
+const API = (()=>{
+  if(!DEMO){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const auth=firebase.auth(), db=firebase.database();
+    let sec=null;
+    return {
+      onAuth:cb=>auth.onAuthStateChanged(u=>cb(u?{uid:u.uid,email:u.email}:null)),
+      login:(u,p)=>auth.signInWithEmailAndPassword(u+"@"+DOMINIO,p),
+      logout:()=>auth.signOut(),
+      on:(path,cb,err)=>{const r=db.ref(path);const h=r.on("value",s=>cb(s.val()),e=>{console.warn(path,e);err&&err(e)});return()=>r.off("value",h)},
+      get:path=>db.ref(path).get().then(s=>s.val()),
+      set:(path,v)=>db.ref(path).set(v),
+      update:(path,obj)=>db.ref(path||"/").update(obj),
+      push:(path,v)=>db.ref(path).push(v),
+      remove:path=>db.ref(path).remove(),
+      newKey:path=>db.ref(path).push().key,
+      nextVale:async()=>{const r=await db.ref("contadores/vale").transaction(v=>(v||0)+1);return r.snapshot.val()},
+      createUser:async(u,p)=>{
+        if(!sec) sec=firebase.initializeApp(FIREBASE_CONFIG,"secundaria");
+        const c=await sec.auth().createUserWithEmailAndPassword(u+"@"+DOMINIO,p);
+        const uid=c.user.uid; await sec.auth().signOut(); return uid;
+      },
+      changePass:async(oldP,newP)=>{
+        const u=auth.currentUser;
+        const cred=firebase.auth.EmailAuthProvider.credential(u.email,oldP);
+        await u.reauthenticateWithCredential(cred); await u.updatePassword(newP);
+      }
+    };
+  }
+  // ---------- DEMO (memoria) ----------
+  const store={roles:{"demo-maxi":{persona:"maxi",rol:"admin",usuario:"maxi"}}};
+  for(const p of Object.keys(DEFAULT_PERSONAS)) if(p!=="maxi") store.roles["demo-"+p]={persona:p,rol:"user",usuario:p};
+  const ls=new Set(); let authCb=null;
+  const parts=p=>(p||"").split("/").filter(Boolean);
+  const getAt=p=>parts(p).reduce((o,k)=>o==null?undefined:o[k],store);
+  const setAt=(p,v)=>{const ks=parts(p);let o=store;for(let i=0;i<ks.length-1;i++){if(typeof o[ks[i]]!=="object"||o[ks[i]]===null)o[ks[i]]={};o=o[ks[i]]}
+    const last=ks[ks.length-1]; if(v===null||v===undefined) delete o[last]; else o[last]=JSON.parse(JSON.stringify(v));};
+  const notify=()=>setTimeout(()=>ls.forEach(l=>l.cb(clone(getAt(l.path)))),0);
+  const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
+  let n=0;
+  return {
+    onAuth:cb=>{authCb=cb;setTimeout(()=>cb(null),0)},
+    login:async(u)=>{u=u.toLowerCase();if(!store.roles["demo-"+u]) throw {code:"auth/invalid-credential"};authCb({uid:"demo-"+u,email:u+"@"+DOMINIO})},
+    logout:async()=>authCb(null),
+    on:(path,cb)=>{const l={path,cb};ls.add(l);setTimeout(()=>cb(clone(getAt(path))),0);return()=>ls.delete(l)},
+    get:async path=>clone(getAt(path)),
+    set:async(path,v)=>{setAt(path,v);notify()},
+    update:async(path,obj)=>{for(const k in obj) setAt((path||"")+"/"+k,obj[k]);notify()},
+    push:async(path,v)=>{setAt(path+"/-d"+Date.now().toString(36)+(n++),v);notify()},
+    remove:async path=>{setAt(path,null);notify()},
+    newKey:()=>"-d"+Date.now().toString(36)+(n++),
+    nextVale:async()=>{const v=(getAt("contadores/vale")||0)+1;setAt("contadores/vale",v);notify();return v},
+    createUser:async(u)=>"demo-"+u,
+    changePass:async()=>{}
+  };
+})();
+
+/* ===================== Utilidades ===================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt$=new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:2,maximumFractionDigits:2});
+const money=v=>fmt$.format(Math.round((v||0)*100)/100).replace(/ /g," ");
+const fmtN=v=>{const r=Math.round(v*10)/10;return (Number.isInteger(r)?r:r.toFixed(1).replace(".",","))};
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS=["dom","lun","mar","mié","jue","vie","sáb"];
+const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const pd=s=>{const [y,m,d]=(s||"").split("-").map(Number);return new Date(y,(m||1)-1,d||1)};
+const dmy=s=>{if(!s)return"";const [y,m,d]=s.split("-");return d+"/"+m+"/"+y.slice(2)};
+const dm=s=>{if(!s)return"";const [,m,d]=s.split("-");return +d+"/"+ +m};
+const toast=msg=>{const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)};
+const saldoMov=obj=>{const r=Object.entries(obj||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.o||0)-(b.o||0)||(a.f||"").localeCompare(b.f||""));let run=0;r.forEach(x=>{run=(x.s!=null&&x.s!=="")?+x.s:run+(+x.d||0)-(+x.h||0);x.saldo=run});return r};
+const sortRows=obj=>Object.entries(obj||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
+const habiles=(a,b)=>{if(!a||!b)return 0;let d=pd(a),e=pd(b),n=0;if(e<d)return 0;while(d<=e){const w=d.getDay();if(w>0&&w<6)n++;d.setDate(d.getDate()+1)}return n};
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+
+/* ===================== App ===================== */
+const App={
+  s:{user:null,role:null,personas:DEFAULT_PERSONAS,persona:null,tab:"mov",mov:{},vac:{},sab:{},roles:{},year:{},offs:[]},
+
+  init(){
+    if(DEMO){$("#demoTag").classList.remove("hidden");$("#lu").placeholder="maxi, rodi, carlitos… (sin clave)"}
+    $("#loginForm").onsubmit=e=>{e.preventDefault();App.login()};
+    $("#bootBtn").onclick=()=>App.bootstrap();
+    API.onAuth(u=>App.onAuth(u));
+  },
+  show(id){["#loading","#login","#noRole","#app"].forEach(x=>$(x).classList.toggle("hidden",x!==id))},
+
+  async login(){
+    const u=$("#lu").value.trim().toLowerCase(),p=$("#lp").value;
+    $("#loginErr").textContent="";
+    if(!u){$("#loginErr").textContent="Ingresá tu usuario";return}
+    $("#loginBtn").disabled=true;$("#loginBtn").textContent="Ingresando…";
+    try{await API.login(u,p)}catch(e){
+      const c=e&&e.code||"";
+      $("#loginErr").textContent=/invalid|wrong|not-found|credential/.test(c)?"Usuario o clave incorrectos":c.includes("too-many")?"Demasiados intentos. Esperá unos minutos.":"No se pudo ingresar ("+(c||e.message||e)+")";
+    }
+    $("#loginBtn").disabled=false;$("#loginBtn").textContent="Ingresar";
+  },
+  logout(){App.close();App.detach();API.logout();$("#lp").value=""},
+
+  async onAuth(u){
+    App.detach(); App.s.user=u; App.s.calc=undefined; App.s.pubCalc=undefined; App.s.movView="mov"; App.s.calcMes=null; App.s.mov={}; App.s.vac={}; App.s.sab={}; App.s.vales={};
+    if(!u){App.show("#login");return}
+    App.show("#loading");
+    let role=null;
+    try{role=await API.get("roles/"+u.uid)}catch(e){console.warn(e)}
+    if(!role){
+      const uname=(u.email||"").split("@")[0];
+      $("#bootBox").classList.toggle("hidden",!DEFAULT_PERSONAS[uname]);
+      App.show("#noRole");return;
+    }
+    App.s.role=role; App.s.persona=role.persona;
+    App.s.offs.push(API.on("personas",v=>{App.s.personas=v||DEFAULT_PERSONAS;App.renderChrome();App.render()}));
+    if(App.isAdmin()) App.s.offs.push(API.on("roles",v=>{App.s.roles=v||{};if(App.s.tab==="adm")App.render()}));
+    App.s.offs.push(API.on("feriados",v=>{App.s.feriados=v||null;if(App.s.tab==="adm")App.render()},()=>{}));
+    if(App.esHijo()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.calc=v||{};if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
+    else App.s.offs.push(API.on("calculos",v=>{App.s.calc=v||{};App.syncPub();if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
+    if(App.isAdmin()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.pubCalc=v||{};App.syncPub()},()=>{}));
+    if(App.canSab()) App.s.offs.push(API.on("sabados",v=>{App.s.sab=v||{};if(App.s.tab==="sab")App.render()},()=>{}));
+    App.attachPersona();
+    App.show("#app"); App.renderChrome(); App.render();
+  },
+  async bootstrap(){
+    const u=App.s.user;const uname=(u.email||"").split("@")[0];
+    try{await API.set("roles/"+u.uid,{persona:uname,rol:"admin",usuario:uname});App.onAuth(u)}
+    catch(e){$("#bootErr").textContent="No se pudo: ya existe un administrador configurado."}
+  },
+  isAdmin(){return App.s.role&&App.s.role.rol==="admin"},
+  esHijo(){return !App.isAdmin()&&!SOCIOS.includes(App.s.role.persona)},
+  pubDe(r){ // copia del cálculo sin datos de socios, para los chicos
+    const o={};CALC_CAMPOS.forEach(([,k])=>o[k]=+r[k]||0);o.pctHijos=+r.pctHijos||0;if(r.origen)o.origen=r.origen;
+    const fil=x=>{const y={};HIJOS.forEach(h=>{if(x&&x[h]!=null&&x[h]!=="")y[h]=x[h]});return y};
+    const aj=fil(r.ajustes),ex=fil(r.excluir);if(Object.keys(aj).length)o.ajustes=aj;if(Object.keys(ex).length)o.excluir=ex;
+    if(r.aplicado)o.aplicado={fecha:r.aplicado.fecha||"",montos:fil(r.aplicado.montos)};return o},
+  syncPub(){ // el admin mantiene la copia pública al día
+    if(!App.isAdmin()||App.s.pubCalc===undefined||App.s.calc===undefined)return;
+    const want={};Object.entries(App.s.calc||{}).forEach(([k,r])=>want[k]=App.pubDe(r));
+    const norm=o=>JSON.stringify(Object.keys(o||{}).sort().map(k=>[k,o[k]]),(key,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+    if(norm(want)!==norm(App.s.pubCalc)){App.s.pubCalc=want;API.set("calculosPublico",want).catch(e=>console.warn(e))}},
+  canSab(){return App.isAdmin()||!!(DEFAULT_PERSONAS[App.s.role.persona]||{}).sabados},
+  detach(){App.s.offs.forEach(f=>f&&f());App.s.offs=[];App.s.pOffs&&App.s.pOffs.forEach(f=>f());App.s.pOffs=[]},
+  attachPersona(){
+    (App.s.pOffs||[]).forEach(f=>f());
+    const p=App.s.persona;App.s.mov={};App.s.vac={};App.s.vales={};
+    App.s.pOffs=[
+      API.on("movimientos/"+p,v=>{App.s.mov=v||{};if(App.s.tab==="mov")App.render()}),
+      API.on("vacaciones/"+p,v=>{App.s.vac=v||{};if(App.s.tab==="vac")App.render()}),
+      API.on("vales/"+p,v=>{App.s.vales=v||{};if(App.s.tab==="mov")App.render()},()=>{})
+    ];
+  },
+  personaList(){return Object.entries(App.s.personas).map(([id,v])=>({id,...v})).sort((a,b)=>(a.orden||9)-(b.orden||9))},
+  pName(id,short=true){const p=App.s.personas[id]||DEFAULT_PERSONAS[id];return p?(short?p.corto:p.nombre):cap(id||"")},
+  setPersona(id){App.s.persona=id;App.attachPersona();App.renderChrome();App.render()},
+  setTab(t){App.s.tab=t;App.renderChrome();App.render();scrollTo(0,0)},
+
+  renderChrome(){
+    const s=App.s,me=s.role.persona;
+    $("#hHello").textContent=App.isAdmin()?"Administrador · "+App.pName(me):"Hola, "+App.pName(me);
+    const enCalc=s.tab==="mov"&&s.movView==="calc";
+    $("#hWho").textContent=enCalc?"Cálculo de retiros":s.tab==="mov"&&s.movView==="vales"&&!App.isAdmin()?"Mis vales":App.isAdmin()&&(s.tab==="mov"||s.tab==="vac")?App.pName(s.persona,false):s.tab==="sab"?"Sábados":s.tab==="calc"?"Cálculo de retiros":s.tab==="adm"?"Administración":App.pName(me,false);
+    const pc=$("#personaChips");
+    const showChips=App.isAdmin()&&((s.tab==="mov"&&!enCalc)||s.tab==="vac");
+    pc.classList.toggle("hidden",!showChips);
+    if(showChips) pc.innerHTML=App.personaList().map(p=>`<button class="chip ${p.id===s.persona?"on":""}" onclick="App.setPersona('${p.id}')">${esc(p.corto)}</button>`).join("");
+    const tabs=[["mov","Anticipos",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'],
+      ["vac","Vacaciones",'<path d="M2 20h20M5 20l7-15 7 15M9 13h6"/>']];
+    if(App.canSab()) tabs.push(["sab","Sábados",'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>']);
+    if(App.isAdmin()) tabs.push(["adm","Admin",'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>']);
+    $("#nav").innerHTML=tabs.map(([k,l,ic])=>`<button class="${s.tab===k?"on":""}" onclick="App.setTab('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}</button>`).join("");
+    $("#fab").classList.toggle("hidden",!(App.isAdmin()&&s.tab==="sab"));
+  },
+  render(){
+    if(!App.s.role) return;
+    const t=App.s.tab;
+    $("#view").innerHTML=t==="mov"?App.movSeg()+(App.s.movView==="calc"?App.vCalc():App.s.movView==="vales"?App.bannerPend()+App.vVales():App.bannerPend()+App.vMov()):t==="vac"?App.vVac():t==="sab"?App.vSab():t==="calc"?App.vCalc():App.vAdm();
+  },
+  yearChips(key,years,sinTodo){
+    if(sinTodo&&App.s.year[key]==="todo")delete App.s.year[key];
+    const cur=App.s.year[key]??(years.includes(String(new Date().getFullYear()))?String(new Date().getFullYear()):(years[0]||"todo"));
+    if(years.length) App.s.year[key]=cur;
+    return {cur,html:`<div class="chips light" style="padding-top:2px">${(sinTodo?years:["todo",...years]).map(y=>`<button class="chip ${y===cur?"on":""}" onclick="App.s.year['${key}']='${y}';App.render()">${y==="todo"?"Todo":y}</button>`).join("")}</div>`};
+  },
+
+  movSeg(){const v=App.s.movView||"mov";return `<div class="seg" style="margin-bottom:12px"><button class="${v==="mov"?"on":""}" onclick="App.setMovView('mov')">Movimientos</button><button class="${v==="vales"?"on":""}" onclick="App.setMovView('vales')">Vales${App.pendientes().length?` <span class="badge b-warn" style="padding:1px 6px">${App.pendientes().length}</span>`:""}</button><button class="${v==="calc"?"on":""}" onclick="App.setMovView('calc')">Cálculo</button></div>`},
+  setMovView(v){App.s.movView=v;App.renderChrome();App.render();scrollTo(0,0)},
+  /* ---------- Anticipos / Retiros ---------- */
+  vMov(){
+    const byO=saldoMov(App.s.mov),saldo=byO.length?byO[byO.length-1].saldo:0;
+    const rows=[...byO].sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
+    const ym=todayISO().slice(0,7);
+    const antMes=rows.filter(r=>(r.f||"").startsWith(ym)).reduce((a,r)=>a+(+r.h||0),0);
+    const lastRet=[...rows].reverse().find(r=>(+r.d||0)>0&&!/^saldo/i.test(r.c||""));
+    const years=[...new Set(rows.map(r=>(r.f||"").slice(0,4)).filter(Boolean))].sort().reverse();
+    const yMin=String(new Date().getFullYear()-1),lim=!App.isAdmin();
+    const yrs=lim?years.filter(y=>y>=yMin):years;
+    const yc=App.yearChips("mov",yrs,lim);
+    const vis=rows.filter(r=>lim?((yc.cur==="todo"?(r.f||"")>=yMin:(r.f||"").startsWith(yc.cur))):(yc.cur==="todo"||(r.f||"").startsWith(yc.cur))).reverse();
+    let html=`<div class="card hero">
+      <div class="lbl">Saldo de retiros</div>
+      <div class="big ${saldo>=0?"pos":"neg"}">${money(saldo)}</div>
+      <div class="sub ${saldo>=0?"pos":"neg"}">${saldo>=0?"A tu favor":"Retirado de más (anticipado)"}</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Último retiro</div><div class="v">${lastRet?money(lastRet.d):"—"}</div><div class="d">${lastRet?esc(lastRet.c)+" · "+dmy(lastRet.f):""}</div></div>
+        <div class="stat"><div class="k">Descontado este mes</div><div class="v">${money(antMes)}</div><div class="d">${MESES[new Date().getMonth()]}</div></div>
+      </div>${App.isAdmin()?`<button class="btn" style="margin-top:12px" onclick="App.formMov()">+ Cargar movimiento a mano</button>`:""}${App.puedeCrearVale()?`<button class="btn ${App.isAdmin()?"sec":""}" style="margin-top:8px" onclick="App.formVale()">+ Nuevo vale${App.isAdmin()?"":" (retiro de plata)"}</button>`:""}</div>${yc.html}`;
+    if(!vis.length) return html+`<div class="empty">No hay movimientos ${yc.cur!=="todo"?"en "+yc.cur:"cargados"}.</div>`;
+    const groups={};vis.forEach(r=>{const k=(r.f||"").slice(0,7);(groups[k]=groups[k]||[]).push(r)});
+    for(const k of Object.keys(groups)){
+      const [y,m]=k.split("-");const g=groups[k];
+      const net=g.reduce((a,r)=>a+(+r.d||0)-(+r.h||0),0);/* neto sin ajustes */
+      html+=`<div class="month"><span>${MESES[+m-1]} ${y}</span><span class="${net>=0?"pos":"neg"}">${net>=0?"+":""}${money(net)}</span></div><div class="list">`;
+      html+=g.map(r=>{const d=pd(r.f),plus=(+r.d||0)>0,amt=plus?+r.d:-(+r.h||0);
+        const vl=r.vale&&(App.s.vales||{})[r.vale],click=vl?`App.verVale('${r.vale}')`:App.isAdmin()?`App.formMov('${r.id}')`:"";
+        return `<div class="row ${click?"tap":""}" ${click?`onclick="${click}"`:""}>
+          <div class="day"><b>${d.getDate()}</b><span>${DIAS[d.getDay()]}</span></div>
+          <div class="mid"><div class="t">${esc(r.c)}</div><div class="s">${plus?"Ingreso":(+r.h||0)>0?"Descuento":""}${r.s!=null&&r.s!==""?' · <span style="color:var(--warn)">saldo ajustado</span>':""}${vl?` · <span class="badge ${vl.estado==="pendiente"?"b-warn":"b-ok"}" style="padding:1px 6px">vale ${vl.estado==="pendiente"?"sin firmar":"firmado"}</span>`:""}</div></div>
+          <div class="amt"><div class="a ${plus?"pos":"neg"}">${plus?"+":"−"}${money(Math.abs(amt))}</div><div class="b">Saldo ${money(r.saldo)}</div></div></div>`}).join("");
+      html+=`</div>`;
+    }
+    return html;
+  },
+
+  /* ---------- Sábados ---------- */
+  sabNeto(rows){ // neteo de cambios entre socios
+    const b={};rows.forEach(r=>{if(r.hizo&&r.toca&&r.hizo!==r.toca){const k=[r.toca,r.hizo];b[k]=(b[k]||0)+1}});
+    const out=[];for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){const a=ROTACION_SABADOS[i],c=ROTACION_SABADOS[j],n=(b[[a,c]]||0)-(b[[c,a]]||0);
+      if(n>0)out.push({debe:a,a:c,n});else if(n<0)out.push({debe:c,a:a,n:-n})}
+    return out;
+  },
+  vSab(){
+    const rows=sortRows(App.s.sab),me=App.s.role.persona,t=todayISO(),adm=App.isAdmin();
+    const prox=rows.filter(r=>r.f>=t),hechos=rows.filter(r=>r.f<t).reverse();
+    const neto=App.sabNeto(rows),mio=ROTACION_SABADOS.includes(me);
+    const debo=neto.filter(x=>x.debe===me),meDeben=neto.filter(x=>x.a===me);
+    const next=prox[0],myNext=prox.find(r=>r.toca===me);
+    let html=`<div class="card hero">
+      <div class="lbl">Próximo sábado</div>
+      <div class="big" style="font-size:24px">${next?dmy(next.f)+" · "+esc(App.pName(next.toca)):"—"}</div>
+      <div class="sub" style="color:var(--muted)">${mio&&myNext?"Tu próximo turno: "+dmy(myNext.f):"Rotación: Maxi → Rodi → Carlitos"}</div>
+      <div class="stats">${mio?`<div class="stat"><div class="k">Sábados que debo</div><div class="v ${debo.length?"neg":""}">${debo.reduce((a,x)=>a+x.n,0)}</div><div class="d">${debo.map(x=>x.n+" a "+App.pName(x.a)).join(", ")||"Ninguno"}</div></div>
+        <div class="stat"><div class="k">Me deben</div><div class="v ${meDeben.length?"pos":""}">${meDeben.reduce((a,x)=>a+x.n,0)}</div><div class="d">${meDeben.map(x=>App.pName(x.debe)+" "+x.n).join(", ")||"Ninguno"}</div></div>`:""}
+        <div class="stat" style="grid-column:1/3"><div class="k">Saldo neto entre socios</div><div class="d" style="font-size:13px;color:var(--ink);margin-top:4px">${neto.length?neto.map(x=>`<b>${esc(App.pName(x.debe))}</b> le debe ${x.n} sábado${x.n>1?"s":""} a <b>${esc(App.pName(x.a))}</b>`).join("<br>"):"Todo compensado ✓"}</div></div>
+      </div><div class="hint" style="margin-top:8px">Cada cambio suma una deuda; cuando se devuelve con otro cambio, se compensa sola.</div></div>`;
+    const row=r=>{const swap=r.hizo&&r.hizo!==r.toca,mine=r.toca===me||r.hizo===me;
+      const st=!r.hizo?(r.f>=t?{c:"b-blue",t:r.f===(next&&next.f)?"Próximo":"Programado"}:{c:"b-grey",t:"Sin registrar"}):swap?{c:"b-warn",t:"Cubrió "+App.pName(r.hizo)}:{c:"b-ok",t:"✓ Cumplido"};
+      return `<div class="row ${mine&&!adm?"me":""} ${adm?"tap":""}" ${adm?`onclick="App.formSab('${r.id}')"`:""}>
+        <div class="day"><b>${pd(r.f).getDate()}</b><span>${MESES[pd(r.f).getMonth()].slice(0,3)}</span></div>
+        <div class="mid"><div class="t">Le toca: ${esc(App.pName(r.toca))}</div><div class="s">${r.hizo?"Lo hizo: "+esc(App.pName(r.hizo)):pd(r.f).getFullYear()}${r.nota?" · "+esc(r.nota):""}</div></div>
+        <div class="amt"><span class="badge ${st.c}">${esc(st.t)}</span></div></div>`};
+    const lim=App.s.proxAll?prox.length:6;
+    html+=`<div class="month"><span>Próximos</span></div><div class="list">${prox.slice(0,lim).map(row).join("")||'<div class="empty">No hay sábados próximos cargados</div>'}</div>`;
+    if(prox.length>lim)html+=`<button class="btn sec" style="margin-top:8px" onclick="App.s.proxAll=true;App.render()">Ver los ${prox.length-lim} siguientes</button>`;
+    const hl=App.s.hechAll?hechos.length:12;
+    html+=`<div class="month"><span>Ya pasaron</span></div><div class="list">${hechos.slice(0,hl).map(row).join("")||'<div class="empty">—</div>'}</div>`;
+    if(hechos.length>hl)html+=`<button class="btn sec" style="margin-top:8px" onclick="App.s.hechAll=true;App.render()">Ver ${hechos.length-hl} anteriores</button>`;
+    return html;
+  },
+  /* ---------- Admin ---------- */
+  vAdm(){
+    const roles=App.s.roles||{};const byP={};
+    Object.entries(roles).forEach(([uid,r])=>{(byP[r.persona]=byP[r.persona]||[]).push({uid,...r})});
+    return `<div class="card adm"><h4>Accesos de usuarios</h4><p>Cada persona entra con su usuario y clave. Al crear el acceso definís la clave inicial (mín. 6 caracteres); después cada uno puede cambiarla desde el candado.</p>
+      ${App.personaList().map(p=>{const us=byP[p.id]||[];
+        return `<div class="urow"><div><b>${esc(p.nombre)}</b><div class="hint" style="margin:2px 0 0">${us.length?us.map(u=>"Usuario: <b>"+esc(u.usuario||"?")+"</b>"+(u.rol==="admin"?" · admin":"")).join("<br>"):"Sin acceso"}</div></div>
+        <div style="display:flex;gap:6px">${us.length?us.filter(u=>u.uid!==App.s.user.uid).map(u=>`<button class="btn small danger" onclick="App.quitarAcceso('${u.uid}')">Quitar</button>`).join(""):`<button class="btn small" onclick="App.formUser('${p.id}')">Crear acceso</button>`}</div></div>`}).join("")}
+    </div>
+    <div class="card adm"><h4>Importar desde Excel</h4><p>Elegí uno o varios de tus Excel: <b>RC.xlsx</b>, <b>Retiros (sin clave)</b> y <b>sabados.xls</b>. La app reconoce cada uno, te muestra los saldos y recién ahí te pide confirmar. Reemplaza solo los datos de las personas y hojas que vienen en los archivos.</p>
+      <input type="file" id="xlsFiles" accept=".xls,.xlsx" multiple style="padding:9px"><div style="height:10px"></div>
+      <button class="btn" onclick="App.importExcel()">Leer Excel</button></div>
+    <div class="card adm"><h4>Restaurar respaldo (.json)</h4><p>Para volver a cargar un respaldo descargado desde acá.</p>
+      <input type="file" id="impFile" accept=".json,application/json" style="padding:9px"><div style="height:10px"></div>
+      <button class="btn sec" onclick="App.importar()">Restaurar</button></div>
+    <div class="card adm"><h4>Respaldo</h4><p>Descargá todo (JSON) o el detalle de una persona en Excel.</p>
+      <button class="btn sec" onclick="App.backup()">Descargar respaldo JSON</button><div style="height:10px"></div>
+      <div class="g2"><select id="xlsP">${App.personaList().map(p=>`<option value="${p.id}">${esc(p.corto)}</option>`).join("")}</select>
+      <button class="btn sec" onclick="App.exportXlsx()">Excel</button></div></div>
+    <div class="card adm"><h4>Numeración de vales</h4><p>Los vales siguen un número correlativo único, como el talonario. Poné el próximo número a usar (ej: el que sigue al último vale de papel).</p>
+      <div class="g2"><input id="nroV" inputmode="numeric" placeholder="ej: 4303"><button class="btn sec" onclick="App.setNroVale()">Guardar</button></div></div>
+    <div class="card adm"><h4>Feriados</h4><p>Se usan para no descontar esos días de las vacaciones. Agregá feriados provinciales o días no laborables si corresponde.</p>
+      <div class="g2"><input type="date" id="ferF"><input id="ferN" placeholder="Nombre"></div><div style="height:8px"></div>
+      <button class="btn sec" onclick="App.addFeriado()">Agregar feriado</button>
+      <div style="margin-top:10px;max-height:240px;overflow:auto">${Object.entries(App.fer()).filter(([f])=>f>=String(new Date().getFullYear()-1)).sort().map(([f,n])=>`<div class="urow"><div>${dmy(f)} · ${esc(n)}</div><button class="btn small danger" onclick="App.delFeriado('${f}')">×</button></div>`).join("")}</div></div>
+    <div class="card adm"><h4>Generar sábados</h4><p>Crea todos los sábados de un año siguiendo la rotación Maxi → Rodi → Carlitos a partir del último cargado. No pisa los existentes.</p>
+      <div class="g2"><input id="genY" type="number" value="${new Date().getFullYear()+1}"><button class="btn sec" onclick="App.genSabados()">Generar</button></div></div>
+    ${DEMO?`<div class="card adm"><h4>Modo demo</h4><p>Configurá FIREBASE_CONFIG en el archivo para usar datos reales.</p></div>`:""}`;
+  },
+
+  fab(){const t=App.s.tab;t==="mov"?App.formMov():t==="vac"?App.formVac():t==="calc"?App.formMes():App.formSab()},
+
+  /* ---------- Sheets / forms ---------- */
+  sheet(html){const r=$("#sheetRoot");r.innerHTML=`<div class="overlay" onclick="if(event.target===this)App.close()"><div class="sheet"><div class="grab"></div>${html}</div></div>`},
+  close(){$("#sheetRoot").innerHTML=""},
+  segToggle(el){el.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("on"));el.classList.add("on")},
+
+  conceptos(){const set=new Set(["Anticipo","Anticipos Banco","Adelanto Banco","Monotributo + OS","Plan de Ahorro","Movistar","Tarjeta de Credito Visa","Cuenta Corriente","Cta Cte","Otros Ingresos"]);
+    Object.values(App.s.mov||{}).forEach(r=>r.c&&!/^saldo/i.test(r.c)&&set.add(r.c));return [...set].slice(0,60)},
+  formMov(id){
+    const r=id?App.s.mov[id]:null;const plus=r?(+r.d||0)>0:false;
+    App.sheet(`<h3>${r?"Editar movimiento":"Nuevo movimiento"}</h3>
+      <div class="hint">${r?esc(App.pName(App.s.persona,false)):"Podés cargarlo a varias personas a la vez (ej: el retiro mensual)."}</div>
+      <label>Tipo</label><div class="seg" id="mTipo">
+        <button type="button" class="${!plus?"on":""}" data-v="h" onclick="App.segToggle(this)">− Anticipo / descuento</button>
+        <button type="button" class="${plus?"on":""}" data-v="d" onclick="App.segToggle(this)">+ Ingreso / a favor</button></div>
+      <div class="hint">El retiro del mes se carga solo desde la pestaña Cálculo.</div>
+      <div class="g2"><div><label>Fecha</label><input type="date" id="mF" value="${r?r.f:todayISO()}"></div>
+      <div><label>Monto $</label><input id="mM" inputmode="decimal" placeholder="0,00" value="${r?String(Math.round((plus?r.d:r.h)*100)/100).replace(".",","):""}"></div></div>
+      ${r?`<label>Saldo fijo (opcional)</label><input id="mS" inputmode="decimal" placeholder="Vacío = se calcula solo" value="${r.s!=null&&r.s!==""?App.numIn(r.s):""}"><div class="hint">Solo si este saldo se tocó a mano: desde acá el saldo sigue a partir de este valor.</div>`:""}
+      <label>Concepto</label><input id="mC" list="dlC" value="${r?esc(r.c):"Anticipo"}"><datalist id="dlC">${App.conceptos().map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+      ${r?"":`<label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:500;margin-top:14px"><input type="checkbox" id="mVale" checked style="width:auto"> Generar vale (le queda pendiente de firma)</label><div class="hint">Solo para descuentos (−).</div>`}
+      ${r?"":`<label>Personas</label><div class="checks">${App.personaList().map(p=>`<label><input type="checkbox" value="${p.id}" ${p.id===App.s.persona?"checked":""}> ${esc(p.corto)}</label>`).join("")}</div>`}
+      <div class="err" id="mErr"></div>
+      <div class="actions">${r?`<button class="btn danger" onclick="App.delMov('${id}')">Borrar</button>`:`<button class="btn sec" onclick="App.close()">Cancelar</button>`}<button class="btn" onclick="App.saveMov(${r?`'${id}'`:"null"})">Guardar</button></div>`);
+  },
+  parseMonto(s){s=String(s||"").trim().replace(/\$|\s/g,"");if(s.includes(","))s=s.replace(/\./g,"").replace(",",".");else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,"");return parseFloat(s)},
+  async saveMov(id){
+    const tipo=$("#mTipo .on").dataset.v,f=$("#mF").value,c=$("#mC").value.trim(),m=App.parseMonto($("#mM").value);
+    if(!f||!c||isNaN(m)||m<0||(!id&&!(m>0))){$("#mErr").textContent="Completá fecha, concepto y un monto mayor a 0";return}
+    const rec={f,c,d:tipo==="d"?m:0,h:tipo==="h"?m:0};
+    try{
+      if(id){const old=App.s.mov[id],sv=$("#mS").value.trim(),sf=App.parseMonto(sv);const nr={...rec,o:old.o||Date.now()};if(old.calc)nr.calc=old.calc;if(old.vale)nr.vale=old.vale;if(sv!==""&&!isNaN(sf))nr.s=sf;
+        await API.set(`movimientos/${App.s.persona}/${id}`,nr)}
+      else{
+        const ps=[...document.querySelectorAll(".checks input:checked")].map(x=>x.value);
+        if(!ps.length){$("#mErr").textContent="Elegí al menos una persona";return}
+        let upd={};const conVale=tipo==="h"&&$("#mVale")&&$("#mVale").checked,lista=[];
+        ps.forEach(p=>{const mid=API.newKey("movimientos/"+p);if(conVale)lista.push({p,mid,rec:{...rec,o:Date.now()}});else upd[`movimientos/${p}/${mid}`]={...rec,o:Date.now()}});
+        if(lista.length)Object.assign(upd,await App.valesParaMovs(lista));
+        await API.update("",upd);
+      }
+      App.close();toast("Guardado");
+    }catch(e){$("#mErr").textContent="Error: "+(e.message||e)}
+  },
+  async delMov(id){const m=App.s.mov[id];if(!confirm("¿Borrar este movimiento?"+(m&&m.vale?" También se anula su vale.":"")))return;
+    const upd={[`movimientos/${App.s.persona}/${id}`]:null};if(m&&m.vale)upd[`vales/${App.s.persona}/${m.vale}`]=null;await API.update("",upd);App.close();toast("Borrado")},
+  /* ---------- Vales ---------- */
+  esSocio(p){return SOCIOS.includes(p)},
+  puedeCrearVale(){return App.isAdmin()||(App.esSocio(App.s.role.persona)&&App.s.persona===App.s.role.persona)},
+  valesList(){return Object.entries(App.s.vales||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(b.f||"").localeCompare(a.f||"")||(b.nro||0)-(a.nro||0))},
+  valeNro(v){return String(v.nro||0).padStart(6,"0")},
+  pendientes(){return App.valesList().filter(v=>v.estado==="pendiente")},
+  bannerPend(){const n=App.pendientes().length,mine=App.s.persona===App.s.role.persona;
+    if(!n)return"";return `<div class="card" style="background:var(--warn-bg);box-shadow:none;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="App.setMovView('vales')">
+      <div style="font-size:26px">✍️</div><div style="flex:1"><b style="color:var(--warn)">${n} vale${n>1?"s":""} pendiente${n>1?"s":""} de firma</b><div class="hint" style="margin:2px 0 0">${mine?"Tocá para revisarlos y firmarlos":"Esperando la firma de "+esc(App.pName(App.s.persona))}</div></div><div style="color:var(--warn);font-weight:700">›</div></div>`},
+  vVales(){
+    const ls=App.valesList(),pend=ls.filter(v=>v.estado==="pendiente"),firm=ls.filter(v=>v.estado!=="pendiente");
+    let html=App.puedeCrearVale()?`<button class="btn" style="margin-bottom:12px" onclick="App.formVale()">+ Nuevo vale</button>`:"";
+    const row=v=>`<div class="row tap" onclick="App.verVale('${v.id}')">
+      <div class="day"><b>${pd(v.f).getDate()}</b><span>${MESES[pd(v.f).getMonth()].slice(0,3)}</span></div>
+      <div class="mid"><div class="t">${esc(v.c||"Vale")}</div><div class="s">Nº ${App.valeNro(v)} · ${pd(v.f).getFullYear()}</div></div>
+      <div class="amt"><div class="a">${money(v.monto)}</div><div style="margin-top:3px"><span class="badge ${v.estado==="pendiente"?"b-warn":"b-ok"}">${v.estado==="pendiente"?"Pendiente de firma":"✓ Firmado"}</span></div></div></div>`;
+    if(pend.length)html+=`<div class="month"><span>Pendientes de firma</span></div><div class="list">${pend.map(row).join("")}</div>`;
+    html+=`<div class="month"><span>Firmados</span><span>${firm.length}</span></div>`+(firm.length?`<div class="list">${firm.map(row).join("")}</div>`:`<div class="empty">Todavía no hay vales firmados.</div>`);
+    return html;
+  },
+  // ---- formulario de vale nuevo
+  formVale(){
+    const p=App.s.persona,propio=p===App.s.role.persona;
+    App.sheet(`<h3>Nuevo vale</h3><div class="hint">${esc(App.pName(p,false))}${propio?"":" · le va a quedar pendiente de firma"}</div>
+      <div class="g2"><div><label>Fecha</label><input type="date" id="vlF" value="${todayISO()}"></div>
+      <div><label>Monto $</label><input id="vlM" inputmode="decimal" placeholder="0,00" oninput="App.valeLetras()"></div></div>
+      <div class="hint" id="vlL"></div>
+      <label>Concepto</label><input id="vlC" list="dlV" value="Anticipo"><datalist id="dlV">${["Anticipo","Anticipos Banco","Adelanto Banco","Movistar","Cuenta Corriente","Plan de Ahorro","Tarjeta de Credito Visa"].map(c=>`<option value="${c}">`).join("")}</datalist>
+      <label>Detalle (opcional)</label><input id="vlD" placeholder="ej: transferencia, efectivo…">
+      ${propio?`<label>Firma</label>${App.sigHtml()}`:""}
+      <div class="err" id="vlErr"></div>
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" onclick="App.saveVale()">${propio?"Firmar y guardar":"Generar vale"}</button></div>`);
+    if(propio)App.sigInit();
+  },
+  valeLetras(){const m=App.parseMonto($("#vlM").value);$("#vlL").textContent=m>0?"Son pesos "+App.letras(m):""},
+  nextNro(p,extra=0){return Math.max(0,...Object.values(p===App.s.persona?(App.s.vales||{}):{}).map(v=>+v.nro||0))+1+extra},
+  async saveVale(){
+    const p=App.s.persona,propio=p===App.s.role.persona,f=$("#vlF").value,m=App.parseMonto($("#vlM").value),c=$("#vlC").value.trim()||"Anticipo",det=$("#vlD").value.trim();
+    if(!f||!(m>0)){$("#vlErr").textContent="Completá fecha y monto";return}
+    let firma=null;if(propio){firma=App.sigData();if(!firma){$("#vlErr").textContent="Falta la firma";return}}
+    const vid=API.newKey("vales/"+p),mid=API.newKey("movimientos/"+p),now=new Date().toISOString();
+    const vale={nro:await API.nextVale(),f,monto:m,c,det,por:App.s.role.persona,creado:now,estado:propio?"firmado":"pendiente",mov:mid};
+    if(propio){vale.firma=firma;vale.firmado=now}
+    const upd={[`vales/${p}/${vid}`]:vale,[`movimientos/${p}/${mid}`]:{f,c,d:0,h:m,o:Date.now(),vale:vid}};
+    try{await API.update("",upd);App.close();toast(propio?"Vale firmado y cargado":"Vale generado: queda pendiente de firma");App.verVale(vid,vale)}
+    catch(e){$("#vlErr").textContent="Error: "+(e.message||e)}
+  },
+  // vales que genera el admin al cargar movimientos
+  async valesParaMovs(lista){ // lista: [{p,mid,rec}] -> vales pendientes de firma
+    const upd={};for(const {p,mid,rec} of lista){const nro=await API.nextVale();
+      const vid=API.newKey("vales/"+p);
+      upd[`vales/${p}/${vid}`]={nro,f:rec.f,monto:rec.h,c:rec.c,det:"",por:App.s.role.persona,creado:new Date().toISOString(),estado:"pendiente",mov:mid};
+      upd[`movimientos/${p}/${mid}`]={...rec,vale:vid}}
+    return upd;
+  },
+  // ---- ver / firmar / imprimir
+  valeDoc(v,p){
+    const per=App.s.personas[p]||DEFAULT_PERSONAS[p]||{},fecha=dmy(v.f).replace(/\/(\d\d)$/,"/20$1");
+    return `<div class="vale">
+      <div class="vale-h"><div class="vale-t">COMPROBANTE DE SALIDA DE EFECTIVO DE CAJA</div><div class="vale-n">Nº <span>${App.valeNro(v)}</span></div></div>
+      <div class="vale-g">
+        <div class="vale-k">FECHA</div><div class="vale-v">${fecha}</div>
+        <div class="vale-k">NOMBRE</div><div class="vale-v">${esc(per.nombre||p)}</div>
+        <div class="vale-k">CONCEPTO</div><div class="vale-v">${esc(v.c||"Anticipo")}${v.det?" – "+esc(v.det):""}</div>
+        <div class="vale-k">MONTO</div><div class="vale-v"><b>${money(v.monto)}</b><div class="vale-l">Son pesos ${esc(App.letras(v.monto))}</div></div>
+        <div class="vale-k">AUTORIZA</div><div class="vale-v vale-f">${v.firma?`<img src="${v.firma}" alt="firma">`:`<span class="vale-pend">Pendiente de firma</span>`}</div>
+      </div>
+      <div class="vale-pie">${v.firmado?"Firmado por "+esc(per.nombre||p)+" el "+new Date(v.firmado).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"})+" · ":""}Generado por ${esc(App.pName(v.por||""))}</div>
+    </div>`;
+  },
+  verVale(id,local){
+    const p=App.s.persona,v=local||(App.s.vales||{})[id];if(!v)return;
+    const puedeFirmar=v.estado==="pendiente"&&p===App.s.role.persona;
+    App._valeId=id;App._valeLocal=v;
+    App.sheet(`${App.valeDoc(v,p)}
+      ${puedeFirmar?`<label>Tu firma</label>${App.sigHtml()}<div class="err" id="fvErr"></div>
+        <div class="actions"><button class="btn sec" onclick="App.close()">Después</button><button class="btn" onclick="App.firmarVale('${id}')">Firmar vale</button></div>`:
+      `<div class="actions"><button class="btn sec" onclick="App.close()">Cerrar</button><button class="btn" onclick="App.imprimirVale()">Imprimir / PDF</button></div>
+       ${App.isAdmin()?`<div class="actions" style="margin-top:8px"><button class="btn small danger" onclick="App.borrarVale('${id}')">Anular vale</button></div>`:""}`}`);
+    if(puedeFirmar)App.sigInit();
+  },
+  async firmarVale(id){
+    const firma=App.sigData();if(!firma){$("#fvErr").textContent="Firmá en el recuadro";return}
+    const p=App.s.persona,v={...App.s.vales[id],firma,estado:"firmado",firmado:new Date().toISOString()};
+    try{await API.set(`vales/${p}/${id}`,v);toast("Vale firmado");App.verVale(id,v)}catch(e){$("#fvErr").textContent="Error: "+(e.message||e)}
+  },
+  async borrarVale(id){const v=App.s.vales[id];if(!confirm("¿Anular el vale? También se borra el movimiento que descontó."))return;
+    const p=App.s.persona,upd={[`vales/${p}/${id}`]:null};if(v&&v.mov)upd[`movimientos/${p}/${v.mov}`]=null;await API.update("",upd);App.close();toast("Vale anulado")},
+  imprimirVale(){const v=App._valeLocal;if(!v)return;$("#printArea").innerHTML=App.valeDoc(v,App.s.persona);setTimeout(()=>window.print(),50)},
+  // ---- firma con el dedo
+  sigHtml(){return `<div class="sigbox"><canvas id="sig"></canvas><button type="button" class="btn small sec sigclr" onclick="App.sigClear()">Borrar</button><div class="sighint">Firmá con el dedo</div></div>`},
+  sigInit(){const c=$("#sig"),r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;
+    const x=c.getContext("2d");x.scale(dpr,dpr);x.lineWidth=2.4;x.lineCap="round";x.lineJoin="round";x.strokeStyle="#10213a";
+    App._sig={c,x,drawn:false,down:false};
+    const pos=e=>{const b=c.getBoundingClientRect();return [e.clientX-b.left,e.clientY-b.top]};
+    c.onpointerdown=e=>{e.preventDefault();c.setPointerCapture(e.pointerId);App._sig.down=true;const [a,b]=pos(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b+.1);x.stroke();App._sig.drawn=true;c.parentNode.classList.add("on")};
+    c.onpointermove=e=>{if(!App._sig.down)return;e.preventDefault();const [a,b]=pos(e);x.lineTo(a,b);x.stroke()};
+    c.onpointerup=c.onpointercancel=()=>{App._sig.down=false}},
+  sigClear(){const s=App._sig;if(!s)return;s.x.clearRect(0,0,s.c.width,s.c.height);s.drawn=false;s.c.parentNode.classList.remove("on")},
+  sigData(){const s=App._sig;if(!s||!s.drawn)return null;const o=document.createElement("canvas");o.width=480;o.height=Math.round(480*s.c.height/s.c.width);
+    o.getContext("2d").drawImage(s.c,0,0,o.width,o.height);return o.toDataURL("image/png")},
+  // ---- número a letras
+  letras(n){
+    const U=["","uno","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuno","veintidós","veintitrés","veinticuatro","veinticinco","veintiséis","veintisiete","veintiocho","veintinueve"];
+    const D=["","","","treinta","cuarenta","cincuenta","sesenta","setenta","ochenta","noventa"];
+    const C=["","ciento","doscientos","trescientos","cuatrocientos","quinientos","seiscientos","setecientos","ochocientos","novecientos"];
+    const t99=x=>x<30?U[x]:D[Math.floor(x/10)]+(x%10?" y "+U[x%10]:"");
+    const t999=x=>x===100?"cien":(C[Math.floor(x/100)]+(x%100?" "+t99(x%100):"")).trim();
+    const miles=x=>{const m=Math.floor(x/1000),r=x%1000;return ((m?(m===1?"mil":t999(m).replace(/veintiuno$/,"veintiún").replace(/uno$/,"un")+" mil"):"")+(r?" "+t999(r):"")).trim()};
+    const ent=Math.floor(n),cent=Math.round((n-ent)*100);
+    const mill=Math.floor(ent/1e6),rest=ent%1e6;
+    let s=(mill?(mill===1?"un millón":miles(mill).replace(/veintiuno$/,"veintiún").replace(/uno$/,"un")+" millones"):"")+(rest?" "+miles(rest):"");
+    s=s.trim()||"cero";s=s.replace(/uno$/,"uno");
+    return s+" con "+String(cent).padStart(2,"0")+"/100";
+  },
+
+
+  /* ---------- Vacaciones ---------- */
+  grupo(p){return SOCIOS.includes(p)?"socio":"hijo"},
+  vacRows(p,obj){ // filas guardadas + devengamiento anual automático
+    const rows=sortRows(obj);const g=App.grupo(p),dias=g==="socio"?DIAS_SOCIO:DIAS_HIJO;
+    const yrs=rows.map(r=>{const m=String(r.c||"").match(/^d[ií]as\s*(\d{4})/i);return m?+m[1]:null}).filter(Boolean);
+    const today=todayISO();let y=yrs.length?Math.max(...yrs)+1:new Date().getFullYear();
+    for(;;y++){const f=g==="socio"?y+"-01-01":y+"-12-31";if(f>today)break;
+      rows.push({id:"auto"+y,f,c:"Días "+y,det:"Devengado automático",n:dias,o:0,auto:true})}
+    rows.sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
+    let run=0;rows.forEach(r=>{run+=(+r.n||0);r.saldo=run});return rows;
+  },
+  canEditVac(r){if(r.auto)return false;if(App.isAdmin())return true;return r.por===App.s.role.persona&&(+r.n||0)<0},
+  vVac(){
+    const p=App.s.persona,rows=App.vacRows(p,App.s.vac),run=rows.length?rows[rows.length-1].saldo:0,g=App.grupo(p);
+    const yNow=String(new Date().getFullYear());
+    const tomadosAnio=rows.filter(r=>(r.f||"").startsWith(yNow)&&(+r.n||0)<0).reduce((a,r)=>a-(+r.n),0);
+    const years=[...new Set(rows.map(r=>(r.f||"").slice(0,4)).filter(Boolean))].sort().reverse();
+    const yc=App.yearChips("vac",years);
+    const vis=rows.filter(r=>yc.cur==="todo"||(r.f||"").startsWith(yc.cur)).reverse();
+    let html=`<div class="card hero">
+      <div class="lbl">Días de vacaciones disponibles</div>
+      <div class="big ${run>=0?"pos":"neg"}">${fmtN(run)} <span style="font-size:17px;font-weight:600">días</span></div>
+      <div class="sub" style="color:var(--muted)">${g==="socio"?DIAS_SOCIO+" días hábiles por año (se suman el 1/1)":DIAS_HIJO+" días hábiles por año (se suman el 31/12)"}</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Tomados ${yNow}</div><div class="v">${fmtN(tomadosAnio)} días</div></div>
+        <div class="stat"><div class="k">Cómo se cuentan</div><div class="d" style="margin-top:4px">${g==="socio"?"Lun a vie. Sábados, domingos y feriados no se descuentan.":"Lun a vie = 1, sábado = ½. Domingos y feriados no se descuentan."}</div></div>
+      </div>
+      ${App.isAdmin()||App.s.role.persona===p?`<button class="btn" style="margin-top:12px" onclick="App.formVac()">+ Cargar vacaciones</button>`:""}</div>${yc.html}`;
+    if(!vis.length) return html+`<div class="empty">No hay registros ${yc.cur!=="todo"?"en "+yc.cur:"cargados"}.</div>`;
+    html+=`<div class="list" style="margin-top:12px">`+vis.map(r=>{const plus=(+r.n||0)>0,ed=App.canEditVac(r);
+      return `<div class="row ${ed?"tap":""}" ${ed?`onclick="App.formVac('${r.id}')"`:""}>
+        <div class="mid"><div class="t">${esc(r.c||"Vacaciones")}</div><div class="s">${esc(r.det||dmy(r.f))}${r.det&&!r.auto?" · "+dmy(r.f):""}${r.auto?' · <span style="color:var(--pos)">automático</span>':""}</div></div>
+        <div class="amt"><div class="a ${plus?"pos":"neg"}">${plus?"+":"−"}${fmtN(Math.abs(+r.n))} d</div><div class="b">Saldo ${fmtN(r.saldo)}</div></div></div>`}).join("")+`</div>`;
+    return html;
+  },
+  fer(){return App.s.feriados||FERIADOS_DEFAULT},
+  contarVac(a,b,p){ // días a descontar en un período
+    const g=App.grupo(p),fer=App.fer();let d=pd(a),e=pd(b),tot=0,hab=0,sab=0,fs=[];
+    if(!a||!b||e<d)return {tot:0,txt:""};
+    while(d<=e){const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),w=d.getDay();
+      if(fer[iso]){if(w!==0)fs.push(dm(iso)+" "+fer[iso])}
+      else if(w===6){if(g==="hijo"){tot+=0.5;sab++}}
+      else if(w!==0){tot+=1;hab++}
+      d.setDate(d.getDate()+1)}
+    let txt=hab+" día"+(hab!==1?"s":"")+" hábil"+(hab!==1?"es":"");
+    if(g==="hijo"&&sab)txt+=" + "+sab+" sábado"+(sab>1?"s":"")+" (½ c/u)";
+    if(fs.length)txt+=". Feriados no descontados: "+fs.join(", ");
+    return {tot,txt};
+  },
+  formVac(id){
+    const r=id?App.s.vac[id]:null,adm=App.isAdmin(),plus=r?(+r.n||0)>0:false;
+    App.sheet(`<h3>${r?"Editar vacaciones":"Cargar vacaciones"}</h3><div class="hint">${esc(App.pName(App.s.persona,false))}</div>
+      ${adm?`<label>Tipo</label><div class="seg" id="vTipo">
+        <button type="button" class="${!plus?"on":""}" data-v="-" onclick="App.segToggle(this);App.vacTipo()">− Días tomados</button>
+        <button type="button" class="${plus?"on":""}" data-v="+" onclick="App.segToggle(this);App.vacTipo()">+ Días adicionales</button></div>`:`<div id="vTipo"><button class="on hidden" data-v="-"></button></div>`}
+      <div id="vMenos"><div class="g2"><div><label>Desde</label><input type="date" id="vD" value="${r&&!plus?r.f:todayISO()}" onchange="App.vacCalc()"></div>
+        <div><label>Hasta</label><input type="date" id="vH" value="${r&&!plus?(r.hasta||r.f):todayISO()}" onchange="App.vacCalc()"></div></div>
+        <div class="card" style="background:var(--bg);box-shadow:none;margin:12px 0 0;padding:12px"><div class="lbl" style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Se descuentan</div>
+          <div style="font-size:22px;font-weight:800" id="vTot">—</div><div class="hint" id="vTxt" style="margin:2px 0 0"></div></div>
+        ${adm?`<label>Corregir cantidad (opcional)</label><input id="vN" inputmode="decimal" placeholder="Vacío = usa el cálculo" value="${r&&!plus&&r.manual?fmtN(Math.abs(r.n)):""}">`:""}</div>
+      <div id="vMas" class="hidden"><div class="g2"><div><label>Fecha</label><input type="date" id="vF" value="${r&&plus?r.f:todayISO()}"></div>
+        <div><label>Unidad</label><select id="vU" onchange="App.vacMas()"><option value="d">Días</option><option value="h" ${r&&r.horas?"selected":""}>Horas</option></select></div></div>
+        <div class="g2"><div><label id="vQl">Cantidad</label><input id="vQ" inputmode="decimal" value="${r&&plus?fmtN(r.horas||r.n):""}" oninput="App.vacMas()"></div>
+        <div><label>Equivale a</label><div style="padding:12px 2px;font-weight:700" id="vEq">—</div></div></div>
+        <label>Motivo</label><input id="vM" value="${r&&plus?esc(r.c):"Días adicionales"}"></div>
+      <div class="err" id="vErr"></div>
+      <div class="actions">${r?`<button class="btn danger" onclick="App.delVac('${id}')">Borrar</button>`:`<button class="btn sec" onclick="App.close()">Cancelar</button>`}<button class="btn" onclick="App.saveVac(${r?`'${id}'`:"null"})">Guardar</button></div>`);
+    App.vacTipo();App.vacCalc();App.vacMas();
+  },
+  vacTipo(){const plus=$("#vTipo .on").dataset.v==="+";$("#vMenos").classList.toggle("hidden",plus);$("#vMas").classList.toggle("hidden",!plus)},
+  vacCalc(){const d=$("#vD").value;if($("#vH").value<d)$("#vH").value=d;const c=App.contarVac(d,$("#vH").value,App.s.persona);
+    $("#vTot").textContent=fmtN(c.tot)+" día"+(c.tot!==1?"s":"");$("#vTxt").textContent=c.txt;App._vc=c},
+  vacMas(){const h=$("#vU").value==="h",q=App.parseMonto($("#vQ").value)||0;$("#vQl").textContent=h?"Horas hechas":"Días";
+    $("#vEq").textContent=fmtN(h?q/HORAS_POR_DIA:q)+" días"+(h?" ("+HORAS_POR_DIA+" h = 1 día)":"")},
+  async saveVac(id){
+    const plus=$("#vTipo .on").dataset.v==="+",old=id?App.s.vac[id]:null;let rec;
+    if(plus){const h=$("#vU").value==="h",q=App.parseMonto($("#vQ").value),f=$("#vF").value;
+      if(!f||!(q>0)){$("#vErr").textContent="Completá fecha y cantidad";return}
+      rec={f,c:$("#vM").value.trim()||"Días adicionales",n:Math.round((h?q/HORAS_POR_DIA:q)*100)/100,det:h?fmtN(q)+" horas":""};if(h)rec.horas=q}
+    else{const f=$("#vD").value,hs=$("#vH").value,man=$("#vN")?$("#vN").value.trim():"";const c=App.contarVac(f,hs,App.s.persona);
+      let n=c.tot;if(man!==""){n=App.parseMonto(man);if(isNaN(n)){$("#vErr").textContent="Cantidad inválida";return}}
+      if(!f||!(n>0)){$("#vErr").textContent="El período no tiene días a descontar";return}
+      rec={f,hasta:hs,c:"Vacaciones",n:-n,det:hs!==f?dm(f)+" al "+dm(hs):""};if(man!=="")rec.manual=true}
+    rec.o=old?(old.o||Date.now()):Date.now();rec.por=old?.por||App.s.role.persona;
+    try{if(id)await API.set(`vacaciones/${App.s.persona}/${id}`,rec);else await API.set(`vacaciones/${App.s.persona}/${API.newKey("vacaciones/"+App.s.persona)}`,rec);App.close();toast("Guardado")}
+    catch(e){$("#vErr").textContent="Error: "+(e.message||e)}
+  },
+  async delVac(id){if(!confirm("¿Borrar este registro?"))return;await API.remove(`vacaciones/${App.s.persona}/${id}`);App.close();toast("Borrado")},
+  formSab(id){
+    const r=id?App.s.sab[id]:null;
+    const opts=(sel,blank)=>(blank?`<option value="">— sin registrar —</option>`:"")+ROTACION_SABADOS.map(p=>`<option value="${p}" ${sel===p?"selected":""}>${esc(App.pName(p))}</option>`).join("");
+    App.sheet(`<h3>${r?"Sábado "+dmy(r.f):"Nuevo sábado"}</h3>
+      ${r?"":`<label>Fecha</label><input type="date" id="sF" value="${todayISO()}">`}
+      <div class="g2"><div><label>Le toca</label><select id="sT">${opts(r&&r.toca)}</select></div>
+      <div><label>Lo hizo</label><select id="sH">${opts(r&&(r.hizo||(r.f<=todayISO()?r.toca:"")),true)}</select></div></div>
+      <label>Nota</label><input id="sN" value="${r?esc(r.nota||""):""}" placeholder="opcional">
+      <div class="hint">Si lo hizo otro, queda como cambio y se compensa solo con los cambios en sentido contrario.</div>
+      <div class="err" id="sErr"></div>
+      <div class="actions">${r?`<button class="btn danger" onclick="App.delSab('${id}')">Borrar</button>`:`<button class="btn sec" onclick="App.close()">Cancelar</button>`}<button class="btn" onclick="App.saveSab(${r?`'${id}'`:"null"})">Guardar</button></div>`);
+  },
+  async saveSab(id){
+    const f=id?App.s.sab[id].f:$("#sF").value;if(!f){$("#sErr").textContent="Elegí la fecha";return}
+    const rec={f,toca:$("#sT").value,hizo:$("#sH").value,nota:$("#sN").value.trim()};
+    const key=id||"s"+f.replace(/-/g,"");
+    try{await API.set("sabados/"+key,rec);App.close();toast("Guardado")}catch(e){$("#sErr").textContent="Error: "+(e.message||e)}
+  },
+  async delSab(id){if(!confirm("¿Borrar este sábado?"))return;await API.remove("sabados/"+id);App.close()},
+  async genSabados(){
+    const y=+$("#genY").value;if(!(y>2000))return;
+    const rows=sortRows(App.s.sab);const last=rows[rows.length-1];
+    let idx=last?(ROTACION_SABADOS.indexOf(last.toca)+1)%3:0;
+    let d=new Date(y,0,1);while(d.getDay()!==6)d.setDate(d.getDate()+1);
+    if(last&&pd(last.f)>=d){toast("Ya hay sábados cargados en "+y+" o después");return}
+    const upd={};let n=0;
+    while(d.getFullYear()===y){const f=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      upd["sabados/s"+f.replace(/-/g,"")]={f,toca:ROTACION_SABADOS[idx],hizo:"",pag:"",nota:""};idx=(idx+1)%3;n++;d.setDate(d.getDate()+7)}
+    if(!confirm(`Se crearán ${n} sábados de ${y}. ¿Continuar?`))return;
+    await API.update("",upd);toast(n+" sábados creados");
+  },
+
+  async setNroVale(){const n=parseInt($("#nroV").value,10);if(!(n>0)){toast("Número inválido");return}
+    if(!confirm("El próximo vale va a ser el Nº "+String(n).padStart(6,"0")+". ¿Confirmás?"))return;await API.set("contadores/vale",n-1);toast("Numeración actualizada")},
+  async addFeriado(){const f=$("#ferF").value,n=$("#ferN").value.trim()||"Feriado";if(!f)return;
+    if(!App.s.feriados)await API.set("feriados",FERIADOS_DEFAULT);await API.set("feriados/"+f,n);toast("Feriado agregado")},
+  async delFeriado(f){if(!confirm("¿Quitar el feriado "+dmy(f)+"?"))return;if(!App.s.feriados)await API.set("feriados",FERIADOS_DEFAULT);await API.remove("feriados/"+f)},
+  /* ---------- Usuarios ---------- */
+  formUser(p){
+    App.sheet(`<h3>Crear acceso · ${esc(App.pName(p,false))}</h3>
+      <label>Usuario</label><input id="uU" value="${p}" autocapitalize="none">
+      <label>Clave inicial (mín. 6)</label><input id="uP" type="text" autocomplete="off">
+      <div class="hint">Pasale a ${esc(App.pName(p))} el usuario y la clave. Va a poder cambiarla desde el candado.</div>
+      <div class="err" id="uErr"></div>
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" id="uBtn" onclick="App.crearUser('${p}')">Crear</button></div>`);
+  },
+  async crearUser(p){
+    const u=$("#uU").value.trim().toLowerCase(),pw=$("#uP").value;
+    if(!/^[a-z0-9._-]{2,}$/.test(u)){$("#uErr").textContent="Usuario: solo minúsculas, números, punto o guión";return}
+    if(pw.length<6){$("#uErr").textContent="La clave debe tener al menos 6 caracteres";return}
+    $("#uBtn").disabled=true;
+    try{const uid=await API.createUser(u,pw);await API.set("roles/"+uid,{persona:p,rol:"user",usuario:u});App.close();toast("Acceso creado para "+u)}
+    catch(e){$("#uBtn").disabled=false;$("#uErr").textContent=(e.code||"").includes("email-already")?"Ese usuario ya existe en Firebase. Usá otro nombre (ej: "+u+"2) o borralo en la consola (Authentication).":"Error: "+(e.message||e)}
+  },
+  async quitarAcceso(uid){if(!confirm("¿Quitar el acceso? La persona ya no va a poder ver datos."))return;await API.remove("roles/"+uid);toast("Acceso quitado")},
+
+  openPass(){
+    App.sheet(`<h3>Cambiar clave</h3>
+      <label>Clave actual</label><input id="pO" type="password" autocomplete="current-password">
+      <label>Clave nueva (mín. 6)</label><input id="pN" type="password" autocomplete="new-password">
+      <label>Repetir clave nueva</label><input id="pR" type="password" autocomplete="new-password">
+      <div class="err" id="pErr"></div>
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" onclick="App.savePass()">Cambiar</button></div>`);
+  },
+  async savePass(){
+    const o=$("#pO").value,n=$("#pN").value;
+    if(n.length<6){$("#pErr").textContent="Mínimo 6 caracteres";return}
+    if(n!==$("#pR").value){$("#pErr").textContent="Las claves no coinciden";return}
+    try{await API.changePass(o,n);App.close();toast("Clave actualizada")}catch(e){$("#pErr").textContent=/wrong|invalid|credential/.test(e.code||"")?"La clave actual no es correcta":"Error: "+(e.message||e)}
+  },
+
+  /* ---------- Importar / exportar ---------- */
+  async importar(){
+    const f=$("#impFile").files[0];if(!f){toast("Elegí el archivo .json");return}
+    let data;try{data=JSON.parse(await f.text())}catch(e){toast("El archivo no es un JSON válido");return}
+    if(!data.movimientos&&!data.vacaciones&&!data.sabados){toast("El archivo no tiene el formato esperado");return}
+    const nm=Object.values(data.movimientos||{}).reduce((a,o)=>a+Object.keys(o).length,0),nv=Object.values(data.vacaciones||{}).reduce((a,o)=>a+Object.keys(o).length,0),ns=Object.keys(data.sabados||{}).length;
+    if(!confirm(`Se van a cargar ${nm} movimientos, ${nv} registros de vacaciones y ${ns} sábados.\n\nREEMPLAZA los datos actuales. ¿Continuar?`))return;
+    const upd={};["personas","movimientos","vacaciones","sabados","calculos"].forEach(k=>{if(data[k])upd[k]=data[k]});
+    try{await API.update("",upd);toast("Datos importados")}catch(e){alert("Error al importar: "+(e.message||e))}
+  },
+  async backup(){
+    const out={};for(const k of ["personas","movimientos","vacaciones","sabados","calculos"]) out[k]=await API.get(k);
+    const b=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="respaldo_retiros_"+todayISO()+".json";a.click();
+  },
+  /* ---------- Cálculo de retiros ---------- */
+  calcNums(r){
+    const base=CALC_CAMPOS.reduce((a,[,k])=>a+(+r[k]||0),0);
+    const pS=+r.pctSocios||0,pH=+r.pctHijos||0;
+    const pozo=base*pS,socio=pozo/SOCIOS.length,hijo=base*pH;
+    const montos={};SOCIOS.forEach(p=>montos[p]=socio);HIJOS.forEach(p=>montos[p]=pH?hijo:0);
+    const aj=r.ajustes||{};Object.keys(aj).forEach(p=>{if(aj[p]!==""&&aj[p]!=null)montos[p]=+aj[p]});
+    const ex=r.excluir||{};Object.keys(ex).forEach(p=>{if(ex[p])montos[p]=0});
+    return {base,pozo,socio,hijo,montos};
+  },
+  mesLabel(k,short){const [y,m]=k.split("-");return short?MESES[+m-1].slice(0,3)+" "+y.slice(2):MESES[+m-1]+" "+y},
+  pctTxt(v){return (Math.round((+v||0)*100000)/1000).toString().replace(".",",")+"%"},
+  numIn(v){return v==null||v===""?"":new Intl.NumberFormat("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)},
+  vCalc(){
+    const calc=App.s.calc||{},meses=Object.keys(calc).sort().reverse(),adm=App.isAdmin(),me=App.s.role.persona;
+    const carga=adm?`<div class="card adm"><h4>Cargar un mes</h4><p>A mano, o subiendo el Excel con la hoja Calculo (RC.xlsx y/o Retiros sin clave). Del Excel solo se toma el cálculo: no toca los movimientos.</p>
+      <button class="btn" onclick="App.formMes()">+ Cargar mes a mano</button><div style="height:10px"></div>
+      <input type="file" id="calcFiles" accept=".xls,.xlsx" multiple style="padding:9px"><div style="height:8px"></div>
+      <button class="btn sec" onclick="App.importExcel(true)">Subir Excel del cálculo</button></div>`:"";
+    if(!meses.length) return carga+`<div class="empty">Todavía no hay meses cargados.</div>`;
+    const sel=App.s.calcMes&&calc[App.s.calcMes]?App.s.calcMes:meses[0];App.s.calcMes=sel;
+    const r=calc[sel],n=App.calcNums(r),locked=r.origen==="planilla";
+    let html=carga+`<div class="chips light" style="padding-top:2px">${meses.map(k=>`<button class="chip ${k===sel?"on":""}" onclick="App.s.calcMes='${k}';App.render()">${App.mesLabel(k,true)}</button>`).join("")}</div>`;
+    const st=r.aplicado?`<span class="badge b-ok">${locked?"Ya está en las cuentas (planilla)":"Pasado a las cuentas "+dmy(r.aplicado.fecha)}</span>`:`<span class="badge b-warn">Sin pasar a las cuentas</span>`;
+    // Resultado
+    const mine=App.s.personas[me]||DEFAULT_PERSONAS[me];
+    html+=`<div class="card hero" style="margin-top:10px"><div class="hrow"><div class="lbl">${App.mesLabel(sel)}</div>${st}</div>`;
+    if(!adm) html+=`<div class="lbl" style="margin-top:12px">Tu retiro del mes</div><div class="big pos">${money(n.montos[me]||0)}</div>
+       <div class="sub" style="color:var(--muted)">${SOCIOS.includes(me)?App.pctTxt(r.pctSocios)+" de la base, dividido entre 3":App.pctTxt(r.pctHijos)+" de la base"}</div>`;
+    html+=`<div class="stats"><div class="stat"><div class="k">Base del mes</div><div class="v" id="cBase">${money(n.base)}</div></div>
+      ${App.esHijo()?`<div class="stat"><div class="k">Tu porcentaje</div><div class="v">${App.pctTxt(r.pctHijos)}</div></div>`:`<div class="stat"><div class="k">Pozo socios (${App.pctTxt(r.pctSocios)})</div><div class="v" id="cPozo">${money(n.pozo)}</div></div>`}</div></div>`;
+    // Detalle base
+    const grupo=(g,t)=>`<div class="month"><span>${t}</span></div><div class="list">`+CALC_CAMPOS.filter(c=>c[0]===g).map(([,k,l,neg])=>
+      adm&&!locked?`<div class="row"><div class="mid"><div class="t">${l}</div>${neg?'<div class="s">Se resta</div>':""}</div><div style="width:48%"><input class="cIn" data-k="${k}" data-neg="${neg?1:""}" inputmode="decimal" value="${App.numIn(neg?Math.abs(+r[k]||0):r[k])}" oninput="App.calcLive()" style="text-align:right;padding:9px 10px"></div></div>`
+      :`<div class="row"><div class="mid"><div class="t">${l}</div></div><div class="amt"><div class="a ${(+r[k]||0)<0?"neg":""}">${money(+r[k]||0)}</div></div></div>`).join("")+`</div>`;
+    html+=grupo("ventas","Por ventas contado")+grupo("cobranzas","Por cobranzas");
+    // Porcentajes y reparto
+    if(adm){
+      html+=`<div class="month"><span>Reparto</span></div><div class="card" style="padding:12px 14px">
+        <div class="g2"><div><label style="margin-top:0">% socios (total)</label><input id="cPS" inputmode="decimal" ${locked?"disabled":""} value="${String(Math.round((+r.pctSocios||0)*100000)/1000).replace(".",",")}" oninput="App.calcLive()"></div>
+        <div><label style="margin-top:0">% cada hijo</label><input id="cPH" inputmode="decimal" ${locked?"disabled":""} value="${String(Math.round((+r.pctHijos||0)*100000)/1000).replace(".",",")}" oninput="App.calcLive()"></div></div>
+        <div class="hint">Socios: el % se aplica a la base y se divide entre Maxi, Rodi y Carlitos. Hijos: cada uno cobra el % sobre la base.</div></div>
+        <div class="list">`+App.personaList().map(p=>{const aj=(r.ajustes||{})[p.id],ex=(r.excluir||{})[p.id];
+          return `<div class="row"><input type="checkbox" class="cInc" data-p="${p.id}" ${ex?"":"checked"} ${locked?"disabled":""} onchange="App.calcLive()" style="width:auto">
+          <div class="mid"><div class="t">${esc(p.corto)}</div><div class="s" id="cCalc_${p.id}">Calculado ${money(p.grupo==="socio"||SOCIOS.includes(p.id)?n.socio:n.hijo)}</div></div>
+          <div style="width:44%"><input class="cAj" data-p="${p.id}" inputmode="decimal" placeholder="Ajuste" value="${aj!=null&&aj!==""?App.numIn(aj):""}" ${locked?"disabled":""} oninput="App.calcLive()" style="text-align:right;padding:8px 10px;font-size:14px"><div class="amt" style="margin-top:3px"><div class="b" id="cFin_${p.id}">${money(n.montos[p.id])}</div></div></div></div>`}).join("")+`</div>
+        <div class="hint" style="margin:8px 4px 0">“Ajuste” reemplaza el monto calculado (ej: un retiro fijo). Destildá a quien no corresponda este mes.</div>
+        ${locked?`<div class="hint" style="margin:12px 4px">Este mes vino de la planilla y sus retiros ya están cargados en cada cuenta, por eso no se puede volver a pasar.</div>`:
+        `<div class="actions"><button class="btn sec" onclick="App.saveCalc()">Guardar</button><button class="btn" onclick="App.aplicarCalc()">${r.aplicado?"Actualizar cuentas":"Pasar a las cuentas"}</button></div>
+         <div class="actions" style="margin-top:8px"><button class="btn danger small" onclick="App.delCalc()">Borrar mes</button></div>`}`;
+    } else if(SOCIOS.includes(me)) {
+      html+=`<div class="month"><span>Reparto socios</span></div><div class="list">`+SOCIOS.map(p=>`<div class="row"><div class="mid"><div class="t">${esc(App.pName(p))}</div></div><div class="amt"><div class="a">${money(n.montos[p])}</div></div></div>`).join("")+`</div>`;
+    }
+    return html;
+  },
+  readCalcForm(){
+    const r={...App.s.calc[App.s.calcMes]};
+    document.querySelectorAll(".cIn").forEach(i=>{let v=App.parseMonto(i.value)||0;if(i.dataset.neg)v=-Math.abs(v);r[i.dataset.k]=v});
+    r.pctSocios=(App.parseMonto($("#cPS").value)||0)/100;r.pctHijos=(App.parseMonto($("#cPH").value)||0)/100;
+    r.ajustes={};document.querySelectorAll(".cAj").forEach(i=>{const v=App.parseMonto(i.value);if(i.value.trim()!==""&&!isNaN(v))r.ajustes[i.dataset.p]=v});
+    r.excluir={};document.querySelectorAll(".cInc").forEach(i=>{if(!i.checked)r.excluir[i.dataset.p]=true});
+    return r;
+  },
+  calcLive(){
+    const r=App.readCalcForm(),n=App.calcNums(r);
+    $("#cBase").textContent=money(n.base);$("#cPozo").textContent=money(n.pozo);
+    App.personaList().forEach(p=>{const c=$("#cCalc_"+p.id),f=$("#cFin_"+p.id);
+      if(c)c.textContent="Calculado "+money(SOCIOS.includes(p.id)?n.socio:n.hijo);if(f)f.textContent=money(n.montos[p.id])});
+  },
+  async saveCalc(silent){const r=App.readCalcForm();await API.set("calculos/"+App.s.calcMes,r);if(!silent)toast("Mes guardado");return r},
+  lastDay(k){const [y,m]=k.split("-").map(Number);const d=new Date(y,m,0);return y+"-"+String(m).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},
+  async aplicarCalc(){
+    const k=App.s.calcMes,r=await App.saveCalc(true),n=App.calcNums(r);
+    const lst=App.personaList().filter(p=>!(r.excluir||{})[p.id]&&n.montos[p.id]>0);
+    if(!confirm(`Se carga "Retiro ${App.mesLabel(k)}" al ${dmy(App.lastDay(k))}:\n\n`+lst.map(p=>p.corto+": "+money(n.montos[p.id])).join("\n")+`\n\n${r.aplicado?"Reemplaza lo que se había pasado antes para este mes.":""}¿Continuar?`))return;
+    const key="r"+k.replace("-",""),upd={},montos={};
+    App.personaList().forEach(p=>{
+      const amt=Math.round((n.montos[p.id]||0)*100)/100,inc=lst.some(x=>x.id===p.id);
+      upd[`movimientos/${p.id}/${key}`]=inc?{f:App.lastDay(k),c:"Retiro "+App.mesLabel(k),d:amt,h:0,o:Date.now(),calc:k}:null;
+      if(inc)montos[p.id]=amt;
+    });
+    upd[`calculos/${k}/aplicado`]={fecha:todayISO(),montos};
+    await API.update("",upd);toast("Retiros cargados en cada cuenta");
+  },
+  async delCalc(){const k=App.s.calcMes,r=App.s.calc[k];
+    if(!confirm(`¿Borrar el cálculo de ${App.mesLabel(k)}?${r.aplicado?"\nTambién se borran los retiros que se pasaron a las cuentas.":""}`))return;
+    const upd={["calculos/"+k]:null};if(r.aplicado)App.personaList().forEach(p=>upd[`movimientos/${p.id}/r${k.replace("-","")}`]=null);
+    await API.update("",upd);App.s.calcMes=null;toast("Mes borrado")},
+  formMes(){
+    const d=new Date();const def=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    App.sheet(`<h3>Nuevo mes</h3><label>Mes</label><input type="month" id="nmM" value="${def}">
+      <div class="hint">Se copian los porcentajes del último mes cargado.</div><div class="err" id="nmErr"></div>
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" onclick="App.crearMes()">Crear</button></div>`);
+  },
+  async crearMes(){
+    const k=$("#nmM").value;if(!/^\d{4}-\d{2}$/.test(k)){$("#nmErr").textContent="Elegí un mes";return}
+    if(App.s.calc[k]){$("#nmErr").textContent="Ese mes ya existe";return}
+    const last=Object.keys(App.s.calc).sort().pop(),lr=last?App.s.calc[last]:{};
+    const r={pctSocios:lr.pctSocios??0.045,pctHijos:lr.pctHijos??0.005};CALC_CAMPOS.forEach(([,c])=>r[c]=0);
+    App.s.calc={...App.s.calc,[k]:r};App.s.calcMes=k;App.close();App.render();await API.set("calculos/"+k,r);
+  },
+
+  /* ---------- Importar Excel ---------- */
+  X:{
+    num(v){if(v==null||v==="")return 0;const n=typeof v==="number"?v:parseFloat(String(v).replace(",","."));return isNaN(n)?0:n},
+    empty(v){return v==null||v===""},
+    ymd(y,m,d){return y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0")},
+    serial(v){const d=XLSX.SSF.parse_date_code(v);return App.X.ymd(d.y,d.m,d.d)},
+    isDate(v){return typeof v==="number"&&v>20000&&v<80000},
+    strDate(s,prev){const m=String(s).match(/^\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);if(!m)return prev;
+      const d=+m[1],mo=+m[2];let y=m[3];const [py,pm]=prev.split("-").map(Number);
+      if(y&&y.length<=2)y=2000+ +y;else if(y&&y.length===3)y=2000+ +y.slice(0,2);else if(y)y=+y;else y=py+(mo<pm?1:0);
+      if(Math.abs(y-py)>1)y=py+(mo<pm?1:0);
+      if(mo<1||mo>12||d<1||d>31)return prev;return App.X.ymd(y,mo,d)},
+    rows(ws){return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true})},
+    hdr(rows){return rows.findIndex(r=>r&&r[0]==="Fecha")},
+    retiros(ws){ // historial completo; saldo = anterior + D − H, salvo celdas tocadas a mano
+      const X=App.X,rows=X.rows(ws),out={};let o=0,run=0,prev="2008-01-01";
+      for(let i=X.hdr(rows)+1;i<rows.length;i++){const [f,c,d,h,sal]=rows[i]||[];
+        if(X.empty(f)&&X.empty(c)&&X.empty(d)&&X.empty(h))continue;
+        const fd=X.isDate(f)?X.serial(f):typeof f==="string"?X.strDate(f,prev):prev;prev=fd;o++;
+        const dd=X.num(d),hh=X.num(h);run+=dd-hh;
+        const e={f:fd,c:(X.empty(c)?"":String(c).trim())||(dd||hh?"Anticipo":"(sin concepto)"),d:dd,h:hh,o};
+        if(!X.empty(sal)&&typeof sal==="number"&&Math.abs(sal-run)>0.05){e.s=sal;run=sal}
+        out["m"+String(o).padStart(5,"0")]=e}
+      return out},
+    rc(ws){ // hoja hijo: anticipos + bloque vacaciones
+      const X=App.X,rows=X.rows(ws),mov={},vac={};let o=0,run=0,mode="mov",prev="2025-09-01";
+      for(let i=X.hdr(rows)+1;i<rows.length;i++){const [f,c,d,h]=rows[i]||[];
+        if(typeof f==="string"&&/VACACIONES/i.test(f)){mode="vac";prev="2025-12-31";continue}
+        if(f==="Fecha")continue;if(X.empty(f)&&X.empty(c)&&X.empty(d)&&X.empty(h))continue;
+        const isStr=typeof f==="string",fd=X.isDate(f)?X.serial(f):isStr?X.strDate(f,prev):prev;prev=fd;o++;
+        if(mode==="mov"){const dd=X.num(d),hh=X.num(h),sal=(rows[i]||[])[4];run+=dd-hh;
+          const e={f:fd,c:(X.empty(c)?"":String(c).trim())||"Anticipo",d:dd,h:hh,o};
+          if(typeof sal==="number"&&Math.abs(sal-run)>0.05){e.s=sal;run=sal}
+          if(!dd&&!hh&&!e.s)continue;mov["m"+String(o).padStart(5,"0")]=e}
+        else{const n=X.num(d)-X.num(h);if(!n)continue;
+          vac["v"+String(o).padStart(5,"0")]={f:fd,c:(X.empty(c)?"":String(c).trim())||"Vacaciones",det:isStr?f.trim():"",n,o}}}
+      return {mov,vac}},
+    vacSocios(ws){ // último bloque RODI/CARLITOS/MAXI de la hoja Vacaciones
+      const X=App.X,rows=X.rows(ws);let start=-1;rows.forEach((r,i)=>{if(r&&String(r[0]||"").trim().toUpperCase()==="RODI")start=i});
+      const out={};if(start<0)return out;
+      [[0,"rodi"],[4,"carlitos"],[8,"maxi"]].forEach(([off,p])=>{const v={};let o=0,prev="2023-12-31";
+        for(let i=start+1;i<rows.length;i++){const r=rows[i]||[],lab=r[off],cant=r[off+1],sal=r[off+2];
+          if(X.empty(lab)&&X.empty(cant))continue;let e;
+          const ls=typeof lab==="string"?lab.trim():"";let m;
+          if((m=ls.match(/^saldo\s*(\d{4})/i)))e={f:m[1]+"-12-31",c:ls,det:"",n:X.num(sal)};
+          else if((m=ls.match(/^d[ií]as\s*(\d{4})/i)))e={f:m[1]+"-01-01",c:"Días "+m[1],det:"",n:X.num(cant)};
+          else if(X.isDate(lab))e={f:X.serial(lab),c:"Vacaciones",det:"",n:X.num(cant)};
+          else if(ls)e={f:X.strDate(ls,prev),c:"Vacaciones",det:ls,n:X.num(cant)};
+          if(!e||!e.n)continue;prev=e.f;o++;e.o=o;v["v"+String(o).padStart(5,"0")]=e}
+        out[p]=v});
+      return out},
+    sabados(wb){
+      const X=App.X,real={},out={},nm=v=>X.empty(v)?"":String(v).trim().toLowerCase();
+      const h1=wb.Sheets["Hoja1"];if(h1)X.rows(h1).forEach(r=>{if(r&&X.isDate(r[0]))real[X.serial(r[0])]={hizo:nm(r[2]),pag:X.isDate(r[4])?X.serial(r[4]):""}});
+      const yNow=new Date().getFullYear();
+      wb.SheetNames.forEach(sn=>{const m=sn.match(/^sabados\s*(\d{4})$/i);if(!m||+m[1]<yNow)return;
+        X.rows(wb.Sheets[sn]).forEach(r=>{if(!r||!X.isDate(r[0]))return;const f=X.serial(r[0]),rr=real[f]||{};
+          out["s"+f.replace(/-/g,"")]={f,toca:nm(r[1]),hizo:rr.hizo||"",pag:rr.pag||"",nota:""}})});
+      return out},
+    calculo(ws){ // devuelve {YYYY-MM:{campos..., pool, hijo}}
+      const X=App.X,rows=X.rows(ws),out={};let dateRow=-1,cob=false;const map={};
+      rows.forEach((r,i)=>{if(!r)return;const lab=r[0];
+        if(dateRow<0&&X.empty(lab)&&r.filter(v=>X.isDate(v)).length>=3)dateRow=i;
+        const l=typeof lab==="string"?lab.trim().toLowerCase():null;
+        if(l==="por cobranzas")cob=true;
+        if(l==="contado control")map.contadoControl=i;else if(l==="contado cmsa")map.contadoCMSA=i;
+        else if(l==="nc control"){if(cob)map.ncCobControl=i;else map.ncControl=i}
+        else if(l==="nc cmsa")map.ncCMSA=i;else if(l==="cuenta corriente control")map.ctaCteControl=i;
+        else if(l==="cuenta corriente clientes")map.ctaCteClientes=i;else if(l==="nc car mar")map.ncCarMar=i;
+        else if(typeof lab==="number"&&lab>0&&lab<1){if(map._pct==null){map._pct=i;map._pctv=lab}}});
+      if(dateRow<0)return out;
+      rows[dateRow].forEach((v,c)=>{if(!X.isDate(v))return;const k=X.serial(v).slice(0,7),e={};let tot=0;
+        CALC_CAMPOS.forEach(([,f])=>{const ri=map[f];e[f]=ri!=null?X.num((rows[ri]||[])[c]):0;tot+=e[f]});
+        if(!tot)return;e._tot=tot;if(map._pct!=null)e._pctVal=X.num((rows[map._pct]||[])[c]);out[k]=e});
+      return {meses:out,pctLabel:map._pctv}},
+  },
+  async importExcel(calcOnly){
+    const files=[...(($(calcOnly?"#calcFiles":"#xlsFiles")||{}).files||[])];if(!files.length){toast("Elegí los archivos Excel");return}
+    try{await App.loadXLSX()}catch(e){toast("No se pudo cargar el lector de Excel (¿sin internet?)");return}
+    const X=App.X,res={movimientos:{},vacaciones:{},sabados:null,calculos:{}},log=[],errs=[];
+    const RET={"Rodolfo Martin":"rodi","Maximiliano Martin":"maxi","Carlos Martin (H)":"carlitos"},RC={"Franco":"franco","Agos":"agos","Mati":"mati"};
+    let calcSoc=null,calcHij=null;
+    for(const f of files){
+      let wb;try{wb=XLSX.read(await f.arrayBuffer(),{type:"array"})}catch(e){
+        errs.push(`<b>${esc(f.name)}</b>: no se pudo abrir${/ncrypt|password/i.test(e.message)?" porque tiene contraseña. Usá la copia sin clave.":" ("+esc(e.message)+")"}`);continue}
+      const sn=wb.SheetNames;let used=false;
+      if(calcOnly){if(sn.includes("Calculo")&&sn.some(n=>RET[n]||RC[n])){if(sn.some(n=>RET[n]))calcSoc=X.calculo(wb.Sheets["Calculo"]);else calcHij=X.calculo(wb.Sheets["Calculo"]);log.push(esc(f.name))}
+        else errs.push(`<b>${esc(f.name)}</b>: no tiene la hoja Calculo de retiros.`);continue}
+      for(const [h,p] of Object.entries(RET)) if(sn.includes(h)){res.movimientos[p]=X.retiros(wb.Sheets[h]);used=true}
+      if(sn.some(n=>RET[n])&&sn.includes("Calculo")){calcSoc=X.calculo(wb.Sheets["Calculo"])}
+      for(const [h,p] of Object.entries(RC)) if(sn.includes(h)){const r=X.rc(wb.Sheets[h]);res.movimientos[p]=r.mov;res.vacaciones[p]=r.vac;used=true}
+      if(sn.some(n=>RC[n])&&sn.includes("Calculo")){calcHij=X.calculo(wb.Sheets["Calculo"])}
+      if(sn.includes("Vacaciones")&&sn.some(n=>/^sabados/i.test(n))){Object.assign(res.vacaciones,X.vacSocios(wb.Sheets["Vacaciones"]));res.sabados=X.sabados(wb);used=true}
+      if(!used)errs.push(`<b>${esc(f.name)}</b>: no reconozco las hojas de este archivo.`);else log.push(esc(f.name));
+    }
+    // cálculos: combinar socios + hijos, desde 2025
+    const meses=new Set([...Object.keys(calcSoc?.meses||{}),...Object.keys(calcHij?.meses||{})]);
+    [...meses].filter(k=>k>="2025-01").forEach(k=>{const a=calcSoc?.meses[k],b=calcHij?.meses[k],src=b||a,e={};
+      CALC_CAMPOS.forEach(([,c])=>e[c]=src[c]);
+      const tot=src._tot;e.pctSocios=a&&a._pctVal?Math.round(a._pctVal/a._tot*10000)/10000:(calcSoc?.pctLabel||0.045);
+      e.pctHijos=b&&b._pctVal?Math.round(b._pctVal/b._tot*10000)/10000:0;
+      e.origen="planilla";e.aplicado={fecha:todayISO(),montos:{}};res.calculos[k]=e});
+    let nuevos=[];
+    if(calcOnly){const ex=App.s.calc||{},ks=Object.keys(ex).sort(),latest=ks[ks.length-1];
+      Object.keys(res.calculos).forEach(k=>{const e=res.calculos[k],old=ex[k];
+        if(old&&old.aplicado){delete res.calculos[k];return}
+        if(old||(latest&&k>latest)){e.origen="excel";delete e.aplicado;if(old&&old.ajustes)e.ajustes=old.ajustes;if(old&&old.excluir)e.excluir=old.excluir;nuevos.push(k)}
+        else if(!latest){/* base vacía: todo histórico */}
+        else delete res.calculos[k]});}
+    // resumen
+    const sum=o=>{const r=saldoMov(o);return r.length?r[r.length-1].saldo:0},sumV=o=>Object.values(o||{}).reduce((a,r)=>a+(+r.n||0),0);
+    const ps=App.personaList();
+    const lines=ps.filter(p=>res.movimientos[p.id]||res.vacaciones[p.id]).map(p=>`<div class="urow"><div><b>${esc(p.corto)}</b><div class="hint" style="margin:0">${res.movimientos[p.id]?Object.keys(res.movimientos[p.id]).length+" movimientos"+(Object.values(res.movimientos[p.id]).filter(r=>r.s!=null).length?" ("+Object.values(res.movimientos[p.id]).filter(r=>r.s!=null).length+" saldos ajustados)":""):""}${res.vacaciones[p.id]?" · vacaciones "+fmtN(sumV(res.vacaciones[p.id]))+" días":""}</div></div><div class="amt"><div class="a ${sum(res.movimientos[p.id])>=0?"pos":"neg"}">${res.movimientos[p.id]?money(sum(res.movimientos[p.id])):"—"}</div></div></div>`).join("");
+    App._imp=res;
+    App.sheet(`<h3>Revisar importación</h3><div class="hint">${log.join(", ")||"Ningún archivo válido"}</div>
+      ${errs.length?`<div class="err">${errs.join("<br>")}</div>`:""}
+      ${lines?`<div style="margin-top:8px">${lines}</div>`:""}
+      ${res.sabados?`<div class="hint">Sábados: ${Object.keys(res.sabados).length} fechas</div>`:""}
+      ${Object.keys(res.calculos).length?`<div class="hint">Cálculo: ${Object.keys(res.calculos).length} meses (${App.mesLabel(Object.keys(res.calculos).sort()[0],true)} a ${App.mesLabel(Object.keys(res.calculos).sort().pop(),true)})</div>`:""}
+      ${calcOnly?(nuevos.length?`<div class="hint" style="margin-top:8px">Meses nuevos o actualizados, listos para revisar y pasar a las cuentas: <b>${nuevos.map(k=>App.mesLabel(k)).join(", ")}</b></div>`:(Object.keys(res.calculos).length?"":`<div class="hint" style="margin-top:8px">No hay meses nuevos: los que trae el Excel ya están pasados a las cuentas.</div>`)):`<div class="hint" style="margin-top:10px">Al confirmar se <b>reemplazan</b> los datos de estas personas/hojas.</div>`}
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" ${lines||res.sabados||Object.keys(res.calculos).length?"":"disabled"} onclick="App.confirmImport(${calcOnly?`'${nuevos.sort().pop()||""}'`:""})">Importar</button></div>`);
+  },
+  async confirmImport(goMes){
+    const r=App._imp,upd={};
+    Object.entries(r.movimientos).forEach(([p,v])=>upd["movimientos/"+p]=v);
+    Object.entries(r.vacaciones).forEach(([p,v])=>upd["vacaciones/"+p]=v);
+    if(r.sabados)upd["sabados"]=r.sabados;
+    Object.entries(r.calculos).forEach(([k,v])=>upd["calculos/"+k]=v);
+    if(!App.s.personas||App.s.personas===DEFAULT_PERSONAS)upd["personas"]=DEFAULT_PERSONAS;
+    try{await API.update("",upd);App.close();toast("Excel importado");if(goMes){App.s.calc={...App.s.calc,...r.calculos};App.s.calcMes=goMes;App.render()}}catch(e){alert("Error al importar: "+(e.message||e))}
+  },
+
+  loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";s.onload=ok;s.onerror=ko;document.head.appendChild(s)})},
+  async exportXlsx(){
+    const p=$("#xlsP").value;await App.loadXLSX();
+    const [mv,vc]=await Promise.all([API.get("movimientos/"+p),API.get("vacaciones/"+p)]);
+    const m=[["Fecha","Concepto","D (+)","H (−)","Saldo","Saldo ajustado"]].concat(saldoMov(mv).map(r=>[dmy(r.f),r.c,+r.d||"",+r.h||"",Math.round(r.saldo*100)/100,r.s!=null&&r.s!==""?"sí":""]));
+    const v=[["Fecha","Concepto","Detalle","Días","Saldo"]].concat(App.vacRows(p,vc).map(r=>[dmy(r.f),r.c,r.det||"",+r.n,r.saldo]));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(m),"Anticipos");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(v),"Vacaciones");
+    XLSX.writeFile(wb,`${App.pName(p)}_retiros_${todayISO()}.xlsx`);
+  }
+};
+App.init();
+</script>
+</body>
+</html>
