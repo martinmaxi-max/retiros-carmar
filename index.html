@@ -117,9 +117,10 @@ nav svg{width:23px;height:23px}
 .vale-l{font-size:11px;color:#444;margin-top:3px;line-height:1.3}
 .vale-f{align-items:center;min-height:84px;padding:4px}.vale-f img{max-height:80px;max-width:100%}
 .vale-pend{color:var(--warn);font-weight:700;font-size:13px}
+.tip-c{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:12px}
 .vale-pie{border-top:1.5px solid #111;padding:6px 10px;font-size:10.5px;color:#555}
 #printArea{display:none}
-@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;padding:20px}#printArea .vale{max-width:600px;margin:0 auto}}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;padding:20px}#printArea .vale{max-width:600px;margin:0 auto 28px;page-break-inside:avoid;break-inside:avoid}#printArea .pr-h{font:700 16px sans-serif;margin:0 0 14px}}
 .loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:100;color:var(--muted)}
 </style>
 </head>
@@ -214,6 +215,7 @@ const DEFAULT_PERSONAS = {
 };
 const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
 const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
+const VENTANA_MIN=30; // minutos para corregir lo propio
 const DIAS_SOCIO=20, DIAS_HIJO=15, HORAS_POR_DIA=8;
 // Feriados nacionales (inamovibles + trasladables ya movidos). Editables desde Admin.
 const FERIADOS_DEFAULT={
@@ -251,6 +253,7 @@ const API = (()=>{
       push:(path,v)=>db.ref(path).push(v),
       remove:path=>db.ref(path).remove(),
       newKey:path=>db.ref(path).push().key,
+      ts:()=>firebase.database.ServerValue.TIMESTAMP,
       nextVale:async()=>{const r=await db.ref("contadores/vale").transaction(v=>(v||0)+1);return r.snapshot.val()},
       createUser:async(u,p)=>{
         if(!sec) sec=firebase.initializeApp(FIREBASE_CONFIG,"secundaria");
@@ -286,6 +289,7 @@ const API = (()=>{
     push:async(path,v)=>{setAt(path+"/-d"+Date.now().toString(36)+(n++),v);notify()},
     remove:async path=>{setAt(path,null);notify()},
     newKey:()=>"-d"+Date.now().toString(36)+(n++),
+    ts:()=>Date.now(),
     nextVale:async()=>{const v=(getAt("contadores/vale")||0)+1;setAt("contadores/vale",v);notify();return v},
     createUser:async(u)=>"demo-"+u,
     changePass:async()=>{}
@@ -348,6 +352,7 @@ const App={
     }
     App.s.role=role; App.s.persona=role.persona;
     App.s.offs.push(API.on("personas",v=>{App.s.personas=v||DEFAULT_PERSONAS;App.renderChrome();App.render()}));
+    if(App.isAdmin()) App.s.offs.push(API.on("meta/ultimoRespaldo",v=>{App.s.ultResp=v||null;if(App.s.tab==="adm"||App.s.tab==="mov")App.render()},()=>{}));
     if(App.isAdmin()) App.s.offs.push(API.on("roles",v=>{App.s.roles=v||{};if(App.s.tab==="adm")App.render()}));
     App.s.offs.push(API.on("feriados",v=>{App.s.feriados=v||null;if(App.s.tab==="adm")App.render()},()=>{}));
     if(App.esHijo()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.calc=v||{};if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
@@ -409,7 +414,7 @@ const App={
   render(){
     if(!App.s.role) return;
     const t=App.s.tab;
-    $("#view").innerHTML=t==="mov"?App.movSeg()+(App.s.movView==="calc"?App.vCalc():App.s.movView==="vales"?App.bannerPend()+App.vVales():App.bannerPend()+App.vMov()):t==="vac"?App.vVac():t==="sab"?App.vSab():t==="calc"?App.vCalc():App.vAdm();
+    $("#view").innerHTML=t==="mov"?App.movSeg()+(App.s.movView==="calc"?App.vCalc():App.s.movView==="vales"?App.bannerPend()+App.vVales():App.bannerResp()+App.bannerPend()+App.vMov()):t==="vac"?App.vVac():t==="sab"?App.vSab():t==="calc"?App.vCalc():App.vAdm();
   },
   yearChips(key,years,sinTodo){
     if(sinTodo&&App.s.year[key]==="todo")delete App.s.year[key];
@@ -481,7 +486,7 @@ const App={
       </div>${(mio||adm)&&sinMarcar.length?`<button class="btn" style="margin-top:12px;background:var(--gold);color:var(--navy)" onclick="App.marcarSab('${sinMarcar[0].id}')">¿Quién hizo el sábado ${dm(sinMarcar[0].f)}? Marcar</button>`:""}<div class="hint" style="margin-top:8px">Cada cambio suma una deuda; cuando se devuelve con otro cambio, se compensa sola.</div></div>`;
     const row=r=>{const swap=r.hizo&&r.hizo!==r.toca,mine=r.toca===me||r.hizo===me;
       const st=!r.hizo?(r.f>=t?{c:"b-blue",t:r.f===(next&&next.f)?"Próximo":"Programado"}:{c:"b-grey",t:"Sin registrar"}):swap?{c:"b-warn",t:"Cubrió "+App.pName(r.hizo)}:{c:"b-ok",t:"✓ Cumplido"};
-      const act=adm?`App.formSab('${r.id}')`:(mio&&r.f<=t?`App.marcarSab('${r.id}')`:"");
+      const act=adm?`App.formSab('${r.id}')`:(mio&&r.f<=t&&(!r.hizo||App.enVentana(r.hizoTs))?`App.marcarSab('${r.id}')`:"");
       return `<div class="row ${mine&&!adm?"me":""} ${act?"tap":""}" ${act?`onclick="${act}"`:""}>
         <div class="day"><b>${pd(r.f).getDate()}</b><span>${MESES[pd(r.f).getMonth()].slice(0,3)}</span></div>
         <div class="mid"><div class="t">Le toca: ${esc(App.pName(r.toca))}</div><div class="s">${r.hizo?"Lo hizo: "+esc(App.pName(r.hizo))+(r.hizoPor&&r.hizoPor!==r.hizo?" (marcó "+esc(App.pName(r.hizoPor))+")":""):(r.f<=t&&mio?'<span style="color:var(--warn);font-weight:600">Tocá para marcar quién lo hizo</span>':pd(r.f).getFullYear())}${r.nota?" · "+esc(r.nota):""}</div></div>
@@ -509,8 +514,16 @@ const App={
     <div class="card adm"><h4>Restaurar respaldo (.json)</h4><p>Para volver a cargar un respaldo descargado desde acá.</p>
       <input type="file" id="impFile" accept=".json,application/json" style="padding:9px"><div style="height:10px"></div>
       <button class="btn sec" onclick="App.importar()">Restaurar</button></div>
-    <div class="card adm"><h4>Respaldo</h4><p>Descargá todo (JSON) o el detalle de una persona en Excel.</p>
-      <button class="btn sec" onclick="App.backup()">Descargar respaldo JSON</button><div style="height:10px"></div>
+    <div class="card adm"><h4>Respaldos</h4>
+      <p>Hacelo una vez por mes y guardá los archivos en tu compu o en Drive.${App.s.ultResp?` Último respaldo completo: <b>${new Date(App.s.ultResp).toLocaleDateString("es-AR")}</b>.`:" Todavía no hiciste ninguno."}</p>
+      <label style="margin-top:0">Vales firmados del mes</label>
+      <div class="g2"><input type="month" id="rMes" value="${App.mesAnterior()}"><button class="btn sec" onclick="App.valesMesPDF()">PDF</button></div>
+      <button class="btn sec" style="margin-top:8px" onclick="App.valesMesXlsx()">Lista de vales del mes (Excel)</button>
+      <div class="hint">El PDF trae cada comprobante con su firma. En la ventana de impresión elegí "Guardar como PDF".</div>
+      <label>Todo el sistema</label>
+      <button class="btn" onclick="App.respaldoTodo()">Respaldo completo (Excel + archivo para restaurar)</button>
+      <div class="hint">Se bajan 2 archivos: un Excel para leer (anticipos, vacaciones, vales y sábados de todos) y un .json que sirve para volver a cargar todo en la app si algún día hace falta.</div>
+      <label>Una persona</label>
       <div class="g2"><select id="xlsP">${App.personaList().map(p=>`<option value="${p.id}">${esc(p.corto)}</option>`).join("")}</select>
       <button class="btn sec" onclick="App.exportXlsx()">Excel</button></div></div>
     <div class="card adm"><h4>Numeración de vales</h4><p>Los vales siguen un número correlativo único, como el talonario. Poné el próximo número a usar (ej: el que sigue al último vale de papel).</p>
@@ -573,10 +586,15 @@ const App={
     const upd={[`movimientos/${App.s.persona}/${id}`]:null};if(m&&m.vale)upd[`vales/${App.s.persona}/${m.vale}`]=null;await API.update("",upd);App.close();toast("Borrado")},
   /* ---------- Vales ---------- */
   esSocio(p){return SOCIOS.includes(p)},
-  puedeCrearVale(){return App.isAdmin()||(App.esSocio(App.s.role.persona)&&App.s.persona===App.s.role.persona)},
+  puedeCrearVale(){return App.isAdmin()||App.s.persona===App.s.role.persona},
+  enVentana(ts){return typeof ts==="number"&&Date.now()-ts<VENTANA_MIN*60000},
+  hastaHora(ts){return new Date(ts+VENTANA_MIN*60000).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit",hour12:false})},
+  puedoCorregir(x){return !App.isAdmin()&&x&&x.por===App.s.role.persona&&App.enVentana(x.ts)},
   valesList(){return Object.entries(App.s.vales||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(b.f||"").localeCompare(a.f||"")||(b.nro||0)-(a.nro||0))},
   valeNro(v){return String(v.nro||0).padStart(6,"0")},
   pendientes(){return App.valesList().filter(v=>v.estado==="pendiente")},
+  bannerResp(){if(!App.isAdmin()||App.s.ultResp===undefined)return"";const d=App.s.ultResp?Math.floor((Date.now()-App.s.ultResp)/864e5):null;
+    if(d!==null&&d<30)return"";return `<div class="card" style="background:var(--warn-bg);box-shadow:none;cursor:pointer" onclick="App.setTab('adm')"><b style="color:var(--warn)">💾 ${d===null?"Todavía no hiciste ningún respaldo":"Hace "+d+" días que no hacés un respaldo"}</b><div class="hint" style="margin:2px 0 0">Tocá para ir a Admin → Respaldos</div></div>`},
   bannerPend(){const n=App.pendientes().length,mine=App.s.persona===App.s.role.persona;
     if(!n)return"";return `<div class="card" style="background:var(--warn-bg);box-shadow:none;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="App.setMovView('vales')">
       <div style="font-size:26px">✍️</div><div style="flex:1"><b style="color:var(--warn)">${n} vale${n>1?"s":""} pendiente${n>1?"s":""} de firma</b><div class="hint" style="margin:2px 0 0">${mine?"Tocá para revisarlos y firmarlos":"Esperando la firma de "+esc(App.pName(App.s.persona))}</div></div><div style="color:var(--warn);font-weight:700">›</div></div>`},
@@ -592,17 +610,17 @@ const App={
     return html;
   },
   // ---- formulario de vale nuevo
-  formVale(){
-    const p=App.s.persona,propio=p===App.s.role.persona;
-    App.sheet(`<h3>Nuevo vale</h3><div class="hint">${esc(App.pName(p,false))}${propio?"":" · le va a quedar pendiente de firma"}</div>
-      <div class="g2"><div><label>Fecha</label><input type="date" id="vlF" value="${todayISO()}"></div>
-      <div><label>Monto $</label><input id="vlM" inputmode="decimal" placeholder="0,00" oninput="App.valeLetras()"></div></div>
-      <div class="hint" id="vlL"></div>
-      <label>Concepto</label><input id="vlC" list="dlV" value="Anticipo"><datalist id="dlV">${["Anticipo","Anticipos Banco","Adelanto Banco","Movistar","Cuenta Corriente","Plan de Ahorro","Tarjeta de Credito Visa"].map(c=>`<option value="${c}">`).join("")}</datalist>
-      <label>Detalle (opcional)</label><input id="vlD" placeholder="ej: transferencia, efectivo…">
+  formVale(editId){
+    const p=App.s.persona,propio=p===App.s.role.persona,ed=editId?App.s.vales[editId]:null;App._valeEdit=editId||null;
+    App.sheet(`<h3>${ed?"Corregir vale Nº "+App.valeNro(ed):"Nuevo vale"}</h3><div class="hint">${esc(App.pName(p,false))}${propio?"":" · le va a quedar pendiente de firma"}${ed?" · Tenés que volver a firmar":""}</div>
+      <div class="g2"><div><label>Fecha</label><input type="date" id="vlF" value="${ed?ed.f:todayISO()}"></div>
+      <div><label>Monto $</label><input id="vlM" inputmode="decimal" placeholder="0,00" value="${ed?App.numIn(ed.monto):""}" oninput="App.valeLetras()"></div></div>
+      <div class="hint" id="vlL">${ed?"Son pesos "+App.letras(ed.monto):""}</div>
+      <label>Concepto</label><input id="vlC" list="dlV" value="${ed?esc(ed.c):"Anticipo"}"><datalist id="dlV">${["Anticipo","Anticipos Banco","Adelanto Banco","Movistar","Cuenta Corriente","Plan de Ahorro","Tarjeta de Credito Visa"].map(c=>`<option value="${c}">`).join("")}</datalist>
+      <label>Detalle (opcional)</label><input id="vlD" placeholder="ej: transferencia, efectivo…" value="${ed?esc(ed.det||""):""}">
       ${propio?`<label>Firma</label>${App.sigHtml()}`:""}
       <div class="err" id="vlErr"></div>
-      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" onclick="App.saveVale()">${propio?"Firmar y guardar":"Generar vale"}</button></div>`);
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button><button class="btn" onclick="App.saveVale()">${ed?"Firmar y guardar corrección":propio?"Firmar y guardar":"Generar vale"}</button></div>`);
     if(propio)App.sigInit();
   },
   valeLetras(){const m=App.parseMonto($("#vlM").value);$("#vlL").textContent=m>0?"Son pesos "+App.letras(m):""},
@@ -611,11 +629,16 @@ const App={
     const p=App.s.persona,propio=p===App.s.role.persona,f=$("#vlF").value,m=App.parseMonto($("#vlM").value),c=$("#vlC").value.trim()||"Anticipo",det=$("#vlD").value.trim();
     if(!f||!(m>0)){$("#vlErr").textContent="Completá fecha y monto";return}
     let firma=null;if(propio){firma=App.sigData();if(!firma){$("#vlErr").textContent="Falta la firma";return}}
-    const vid=API.newKey("vales/"+p),mid=API.newKey("movimientos/"+p),now=new Date().toISOString();
-    const vale={nro:await API.nextVale(),f,monto:m,c,det,por:App.s.role.persona,creado:now,estado:propio?"firmado":"pendiente",mov:mid};
-    if(propio){vale.firma=firma;vale.firmado=now}
-    const upd={[`vales/${p}/${vid}`]:vale,[`movimientos/${p}/${mid}`]:{f,c,d:0,h:m,o:Date.now(),vale:vid}};
-    try{await API.update("",upd);App.close();toast(propio?"Vale firmado y cargado":"Vale generado: queda pendiente de firma");App.verVale(vid,vale)}
+    const now=new Date().toISOString(),ed=App._valeEdit?App.s.vales[App._valeEdit]:null;
+    if(ed&&!App.isAdmin()&&!App.enVentana(ed.ts)){$("#vlErr").textContent="Ya pasaron los "+VENTANA_MIN+" minutos para corregirlo. Pedíselo a Maxi.";return}
+    const vid=ed?App._valeEdit:API.newKey("vales/"+p),mid=ed?ed.mov:API.newKey("movimientos/"+p);
+    const vale=ed?{...ed,f,monto:m,c,det,firma,firmado:now,estado:"firmado",corregido:now}
+      :{nro:await API.nextVale(),f,monto:m,c,det,por:App.s.role.persona,creado:now,estado:propio?"firmado":"pendiente",mov:mid,ts:API.ts()};
+    if(!ed&&propio){vale.firma=firma;vale.firmado=now}
+    const movOld=ed?(App.s.mov[mid]||{}):{};
+    const mov={f,c,d:0,h:m,o:movOld.o||Date.now(),vale:vid,por:ed?(movOld.por||vale.por):App.s.role.persona};
+    const upd={[`vales/${p}/${vid}`]:vale,[`movimientos/${p}/${mid}`]:mov};
+    try{await API.update("",upd);App.close();toast(ed?"Vale corregido":propio?"Vale firmado y cargado":"Vale generado: queda pendiente de firma");App.verVale(vid,{...vale,ts:ed?ed.ts:Date.now()})}
     catch(e){$("#vlErr").textContent="Error: "+(e.message||e)}
   },
   // vales que genera el admin al cargar movimientos
@@ -649,7 +672,9 @@ const App={
       ${puedeFirmar?`<label>Tu firma</label>${App.sigHtml()}<div class="err" id="fvErr"></div>
         <div class="actions"><button class="btn sec" onclick="App.close()">Después</button><button class="btn" onclick="App.firmarVale('${id}')">Firmar vale</button></div>`:
       `<div class="actions"><button class="btn sec" onclick="App.close()">Cerrar</button><button class="btn" onclick="App.imprimirVale()">Imprimir / PDF</button></div>
-       ${App.isAdmin()?`<div class="actions" style="margin-top:8px"><button class="btn small danger" onclick="App.borrarVale('${id}')">Anular vale</button></div>`:""}`}`);
+       ${App.isAdmin()?`<div class="actions" style="margin-top:8px"><button class="btn small danger" onclick="App.borrarVale('${id}')">Anular vale</button></div>`:""}
+       ${App.puedoCorregir(v)?`<div class="tip-c">¿Te equivocaste? Podés corregirlo o anularlo hasta las <b>${App.hastaHora(v.ts)}</b>. Después solo Maxi.</div>
+         <div class="actions" style="margin-top:8px"><button class="btn sec" onclick="App.formVale('${id}')">Corregir</button><button class="btn danger" onclick="App.borrarVale('${id}')">Anular</button></div>`:""}`}`);
     if(puedeFirmar)App.sigInit();
   },
   async firmarVale(id){
@@ -657,7 +682,8 @@ const App={
     const p=App.s.persona,v={...App.s.vales[id],firma,estado:"firmado",firmado:new Date().toISOString()};
     try{await API.set(`vales/${p}/${id}`,v);toast("Vale firmado");App.verVale(id,v)}catch(e){$("#fvErr").textContent="Error: "+(e.message||e)}
   },
-  async borrarVale(id){const v=App.s.vales[id];if(!confirm("¿Anular el vale? También se borra el movimiento que descontó."))return;
+  async borrarVale(id){const v=App.s.vales[id];if(!App.isAdmin()&&!App.puedoCorregir(v)){toast("Ya no se puede anular. Pedíselo a Maxi.");return}
+    if(!confirm("¿Anular el vale? También se borra el movimiento que descontó."))return;
     const p=App.s.persona,upd={[`vales/${p}/${id}`]:null};if(v&&v.mov)upd[`movimientos/${p}/${v.mov}`]=null;await API.update("",upd);App.close();toast("Vale anulado")},
   imprimirVale(){const v=App._valeLocal;if(!v)return;$("#printArea").innerHTML=App.valeDoc(v,App.s.persona);setTimeout(()=>window.print(),50)},
   // ---- firma con el dedo
@@ -699,7 +725,7 @@ const App={
     rows.sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
     let run=0;rows.forEach(r=>{run+=(+r.n||0);r.saldo=run});return rows;
   },
-  canEditVac(r){if(r.auto)return false;if(App.isAdmin())return true;return r.por===App.s.role.persona&&(+r.n||0)<0},
+  canEditVac(r){if(r.auto)return false;if(App.isAdmin())return true;return r.por===App.s.role.persona&&(+r.n||0)<0&&App.enVentana(r.ts)},
   vVac(){
     const p=App.s.persona,rows=App.vacRows(p,App.s.vac),run=rows.length?rows[rows.length-1].saldo:0,g=App.grupo(p);
     const yNow=String(new Date().getFullYear());
@@ -753,6 +779,7 @@ const App={
         <div class="g2"><div><label id="vQl">Cantidad</label><input id="vQ" inputmode="decimal" value="${r&&plus?fmtN(r.horas||r.n):""}" oninput="App.vacMas()"></div>
         <div><label>Equivale a</label><div style="padding:12px 2px;font-weight:700" id="vEq">—</div></div></div>
         <label>Motivo</label><input id="vM" value="${r&&plus?esc(r.c):"Días adicionales"}"></div>
+      ${!adm?`<div class="tip-c">${r&&r.ts?"Podés corregirlo o borrarlo hasta las <b>"+App.hastaHora(r.ts)+"</b>.":"Revisá bien las fechas: después de guardar tenés "+VENTANA_MIN+" minutos para corregir. Pasado ese tiempo, solo Maxi."}</div>`:""}
       <div class="err" id="vErr"></div>
       <div class="actions">${r?`<button class="btn danger" onclick="App.delVac('${id}')">Borrar</button>`:`<button class="btn sec" onclick="App.close()">Cancelar</button>`}<button class="btn" onclick="App.saveVac(${r?`'${id}'`:"null"})">Guardar</button></div>`);
     App.vacTipo();App.vacCalc();App.vacMas();
@@ -771,7 +798,8 @@ const App={
       let n=c.tot;if(man!==""){n=App.parseMonto(man);if(isNaN(n)){$("#vErr").textContent="Cantidad inválida";return}}
       if(!f||!(n>0)){$("#vErr").textContent="El período no tiene días a descontar";return}
       rec={f,hasta:hs,c:"Vacaciones",n:-n,det:hs!==f?dm(f)+" al "+dm(hs):""};if(man!=="")rec.manual=true}
-    rec.o=old?(old.o||Date.now()):Date.now();rec.por=old?.por||App.s.role.persona;
+    rec.o=old?(old.o||Date.now()):Date.now();rec.por=old?.por||App.s.role.persona;rec.ts=old&&old.ts?old.ts:API.ts();
+    if(old&&!App.canEditVac({...old,id})){$("#vErr").textContent="Ya pasaron los "+VENTANA_MIN+" minutos para corregirlo. Pedíselo a Maxi.";return}
     try{if(id)await API.set(`vacaciones/${App.s.persona}/${id}`,rec);else await API.set(`vacaciones/${App.s.persona}/${API.newKey("vacaciones/"+App.s.persona)}`,rec);App.close();toast("Guardado")}
     catch(e){$("#vErr").textContent="Error: "+(e.message||e)}
   },
@@ -800,11 +828,13 @@ const App={
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">${ROTACION_SABADOS.map(p=>`<button class="btn ${r.hizo===p?"":"sec"}" style="font-size:18px;padding:16px" onclick="App.guardarHizo('${id}','${p}')">${esc(App.pName(p))}${p===r.toca?" (le tocaba)":""}${r.hizo===p?" ✓":""}</button>`).join("")}</div>
       ${r.hizo?`<button class="btn small danger" style="margin-top:14px" onclick="App.guardarHizo('${id}','')">Borrar lo marcado</button>`:""}
       <div class="hint" style="margin-top:12px">Si fue otro y no el que le tocaba, queda como cambio y se compensa solo.</div>
+      ${App.isAdmin()?"":`<div class="tip-c">${r.hizo&&r.hizoTs?"Podés cambiarlo hasta las <b>"+App.hastaHora(r.hizoTs)+"</b>.":"Después de marcar tenés "+VENTANA_MIN+" minutos para corregir. Pasado ese tiempo, solo Maxi."}</div>`}
       <div class="err" id="hzErr"></div>
       <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button></div>`);
   },
   async guardarHizo(id,p){
-    try{await API.update("sabados/"+id,{hizo:p,hizoPor:p?App.s.role.persona:""});App.close();toast(p?"Listo: lo hizo "+App.pName(p):"Marca borrada")}
+    const r=App.s.sab[id];if(!App.isAdmin()&&r.hizo&&!App.enVentana(r.hizoTs)){$("#hzErr").textContent="Ya no se puede cambiar. Pedíselo a Maxi.";return}
+    try{await API.update("sabados/"+id,{hizo:p,hizoPor:p?App.s.role.persona:"",hizoTs:r.hizoTs||API.ts()});App.close();toast(p?"Listo: lo hizo "+App.pName(p):"Marca borrada")}
     catch(e){$("#hzErr").textContent="No se pudo guardar: "+(e.message||e)}
   },
   async delSab(id){if(!confirm("¿Borrar este sábado?"))return;await API.remove("sabados/"+id);App.close()},
@@ -867,11 +897,12 @@ const App={
     if(!data.movimientos&&!data.vacaciones&&!data.sabados){toast("El archivo no tiene el formato esperado");return}
     const nm=Object.values(data.movimientos||{}).reduce((a,o)=>a+Object.keys(o).length,0),nv=Object.values(data.vacaciones||{}).reduce((a,o)=>a+Object.keys(o).length,0),ns=Object.keys(data.sabados||{}).length;
     if(!confirm(`Se van a cargar ${nm} movimientos, ${nv} registros de vacaciones y ${ns} sábados.\n\nREEMPLAZA los datos actuales. ¿Continuar?`))return;
-    const upd={};["personas","movimientos","vacaciones","sabados","calculos"].forEach(k=>{if(data[k])upd[k]=data[k]});
+    const upd={};["personas","movimientos","vacaciones","sabados","calculos","vales","feriados","contadores"].forEach(k=>{if(data[k])upd[k]=data[k]});
     try{await API.update("",upd);toast("Datos importados")}catch(e){alert("Error al importar: "+(e.message||e))}
   },
   async backup(){
-    const out={};for(const k of ["personas","movimientos","vacaciones","sabados","calculos"]) out[k]=await API.get(k);
+    const out={};for(const k of ["personas","movimientos","vacaciones","sabados","calculos","vales","feriados","contadores"]) out[k]=await API.get(k);
+    out._fecha=new Date().toISOString();try{await API.set("meta/ultimoRespaldo",API.ts())}catch(e){}
     const b=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
     const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="respaldo_retiros_"+todayISO()+".json";a.click();
   },
@@ -1109,6 +1140,35 @@ const App={
     try{await API.update("",upd);App.close();toast("Excel importado");if(goMes){App.s.calc={...App.s.calc,...r.calculos};App.s.calcMes=goMes;App.render()}}catch(e){alert("Error al importar: "+(e.message||e))}
   },
 
+  mesAnterior(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")},
+  async valesDelMes(){const k=$("#rMes").value;if(!k){toast("Elegí el mes");return null}
+    const all=(await API.get("vales"))||{},ls=[];
+    Object.entries(all).forEach(([p,vs])=>Object.entries(vs||{}).forEach(([id,v])=>{if((v.f||"").startsWith(k))ls.push({p,id,...v})}));
+    ls.sort((a,b)=>(a.nro||0)-(b.nro||0));return {k,ls}},
+  async valesMesPDF(){const r=await App.valesDelMes();if(!r)return;const firm=r.ls.filter(v=>v.estado==="firmado"),pend=r.ls.length-firm.length;
+    if(!firm.length){toast("No hay vales firmados en "+App.mesLabel(r.k));return}
+    $("#printArea").innerHTML=`<div class="pr-h">Vales firmados · ${App.mesLabel(r.k)} · ${firm.length} comprobante${firm.length>1?"s":""} · Total ${money(firm.reduce((a,v)=>a+(+v.monto||0),0))}${pend?" · ("+pend+" pendiente"+(pend>1?"s":"")+" de firma, no incluidos)":""}</div>`+firm.map(v=>App.valeDoc(v,v.p)).join("");
+    setTimeout(()=>window.print(),80)},
+  async valesMesXlsx(){const r=await App.valesDelMes();if(!r)return;if(!r.ls.length){toast("No hay vales en "+App.mesLabel(r.k));return}await App.loadXLSX();
+    const rows=[["Nº","Fecha","Nombre","Concepto","Detalle","Monto","Estado","Firmado el","Generado por"]].concat(r.ls.map(v=>[App.valeNro(v),dmy(v.f),App.pName(v.p,false),v.c||"",v.det||"",+v.monto||0,v.estado==="firmado"?"Firmado":"Pendiente",v.firmado?new Date(v.firmado).toLocaleString("es-AR"):"",App.pName(v.por||"")]));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),"Vales "+r.k);XLSX.writeFile(wb,"vales_"+r.k+".xlsx")},
+  async respaldoTodo(){
+    try{await App.loadXLSX()}catch(e){toast("Sin conexión para generar el Excel");return}
+    const [mv,vc,vl,sb]=await Promise.all(["movimientos","vacaciones","vales","sabados"].map(k=>API.get(k)));
+    const wb=XLSX.utils.book_new(),add=(n,a)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),n.slice(0,31));
+    const res=[["Persona","Saldo retiros","Días de vacaciones"]];
+    App.personaList().forEach(p=>{const m=saldoMov((mv||{})[p.id]),v=App.vacRows(p.id,(vc||{})[p.id]);
+      res.push([p.nombre,m.length?Math.round(m[m.length-1].saldo*100)/100:0,v.length?v[v.length-1].saldo:0])});
+    add("Resumen",res);
+    App.personaList().forEach(p=>{const vs=(vl||{})[p.id]||{};
+      add(p.corto+" anticipos",[["Fecha","Concepto","D (+)","H (−)","Saldo","Vale Nº"]].concat(saldoMov((mv||{})[p.id]).map(r=>[dmy(r.f),r.c,+r.d||"",+r.h||"",Math.round(r.saldo*100)/100,r.vale&&vs[r.vale]?App.valeNro(vs[r.vale]):""])));
+      add(p.corto+" vacaciones",[["Fecha","Concepto","Detalle","Días","Saldo"]].concat(App.vacRows(p.id,(vc||{})[p.id]).map(r=>[dmy(r.f),r.c,r.det||"",+r.n,r.saldo])))});
+    const vals=[];Object.entries(vl||{}).forEach(([p,vs])=>Object.values(vs||{}).forEach(v=>vals.push({p,...v})));vals.sort((a,b)=>(a.nro||0)-(b.nro||0));
+    add("Vales",[["Nº","Fecha","Nombre","Concepto","Monto","Estado","Firmado el"]].concat(vals.map(v=>[App.valeNro(v),dmy(v.f),App.pName(v.p,false),v.c||"",+v.monto||0,v.estado,v.firmado?new Date(v.firmado).toLocaleString("es-AR"):""])));
+    add("Sábados",[["Fecha","Le toca","Lo hizo"]].concat(sortRows(sb).map(r=>[dmy(r.f),App.pName(r.toca),r.hizo?App.pName(r.hizo):""])));
+    XLSX.writeFile(wb,"respaldo_retiros_"+todayISO()+".xlsx");
+    setTimeout(()=>App.backup(),600);toast("Respaldo descargado");
+  },
   loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";s.onload=ok;s.onerror=ko;document.head.appendChild(s)})},
   async exportXlsx(){
     const p=$("#xlsP").value;await App.loadXLSX();
