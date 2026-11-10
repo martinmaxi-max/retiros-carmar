@@ -215,6 +215,7 @@ const DEFAULT_PERSONAS = {
 };
 const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
 const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
+const APP_VERSION="2026-11-10.3";
 const VENTANA_MIN=30; // minutos para corregir lo propio
 const DIAS_SOCIO=20, DIAS_HIJO=15, HORAS_POR_DIA=8;
 // Feriados nacionales (inamovibles + trasladables ya movidos). Editables desde Admin.
@@ -358,6 +359,12 @@ const App={
     if(App.esHijo()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.calc=v||{};if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
     else App.s.offs.push(API.on("calculos",v=>{App.s.calc=v||{};App.syncPub();if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
     if(App.isAdmin()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.pubCalc=v||{};App.syncPub()},()=>{}));
+    const verSoc=App.isAdmin()||SOCIOS.includes(App.s.role.persona);
+    const rvac=()=>{if(App.s.tab==="vac")App.render()};
+    if(verSoc)App.s.offs.push(API.on("vacPublico",v=>{App.s.vacPub=v||{};rvac()},()=>{}));
+    App.s.offs.push(API.on("planes/socios",v=>{App.s.planS=v||{};rvac()},()=>{}));
+    App.s.offs.push(API.on("planes/chicos",v=>{App.s.planC=v||{};rvac()},()=>{}));
+    if(App.isAdmin())setTimeout(()=>App.syncVacPubTodos(),2500);
     if(App.canSab()) App.s.offs.push(API.on("sabados",v=>{App.s.sab=v||{};if(App.s.tab==="sab")App.render()},()=>{}));
     App.attachPersona();
     App.show("#app"); App.renderChrome(); App.render();
@@ -386,7 +393,7 @@ const App={
     const p=App.s.persona;App.s.mov={};App.s.vac={};App.s.vales={};
     App.s.pOffs=[
       API.on("movimientos/"+p,v=>{App.s.mov=v||{};if(App.s.tab==="mov")App.render()}),
-      API.on("vacaciones/"+p,v=>{App.s.vac=v||{};if(App.s.tab==="vac")App.render()}),
+      API.on("vacaciones/"+p,v=>{App.s.vac=v||{};App.syncVacPub(p,App.s.vac);if(App.s.tab==="vac")App.render()}),
       API.on("vales/"+p,v=>{App.s.vales=v||{};if(App.s.tab==="mov")App.render()},()=>{})
     ];
   },
@@ -399,9 +406,9 @@ const App={
     const s=App.s,me=s.role.persona;
     $("#hHello").textContent=App.isAdmin()?"Administrador · "+App.pName(me):"Hola, "+App.pName(me);
     const enCalc=s.tab==="mov"&&s.movView==="calc";
-    $("#hWho").textContent=enCalc?"Cálculo de retiros":s.tab==="mov"&&s.movView==="vales"&&!App.isAdmin()?"Mis vales":App.isAdmin()&&(s.tab==="mov"||s.tab==="vac")?App.pName(s.persona,false):s.tab==="sab"?"Sábados":s.tab==="calc"?"Cálculo de retiros":s.tab==="adm"?"Administración":App.pName(me,false);
+    $("#hWho").textContent=enCalc?"Cálculo de retiros":s.tab==="mov"&&s.movView==="vales"&&!App.isAdmin()?"Mis vales":s.tab==="vac"&&s.vacView==="plan"?"Planificación de vacaciones":App.isAdmin()&&(s.tab==="mov"||s.tab==="vac")?App.pName(s.persona,false):s.tab==="sab"?"Sábados":s.tab==="calc"?"Cálculo de retiros":s.tab==="adm"?"Administración":App.pName(me,false);
     const pc=$("#personaChips");
-    const showChips=App.isAdmin()&&((s.tab==="mov"&&!enCalc)||s.tab==="vac");
+    const showChips=App.isAdmin()&&((s.tab==="mov"&&!enCalc)||(s.tab==="vac"&&s.vacView!=="plan"));
     pc.classList.toggle("hidden",!showChips);
     if(showChips) pc.innerHTML=App.personaList().map(p=>`<button class="chip ${p.id===s.persona?"on":""}" onclick="App.setPersona('${p.id}')">${esc(p.corto)}</button>`).join("");
     const tabs=[["mov","Anticipos",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'],
@@ -534,6 +541,7 @@ const App={
       <div style="margin-top:10px;max-height:240px;overflow:auto">${Object.entries(App.fer()).filter(([f])=>f>=String(new Date().getFullYear()-1)).sort().map(([f,n])=>`<div class="urow"><div>${dmy(f)} · ${esc(n)}</div><button class="btn small danger" onclick="App.delFeriado('${f}')">×</button></div>`).join("")}</div></div>
     <div class="card adm"><h4>Generar sábados</h4><p>Crea todos los sábados de un año siguiendo la rotación Maxi → Rodi → Carlitos a partir del último cargado. No pisa los existentes.</p>
       <div class="g2"><input id="genY" type="number" value="${new Date().getFullYear()+1}"><button class="btn sec" onclick="App.genSabados()">Generar</button></div></div>
+    <div class="hint" style="text-align:center">Versión de la app: ${APP_VERSION}</div>
     ${DEMO?`<div class="card adm"><h4>Modo demo</h4><p>Configurá FIREBASE_CONFIG en el archivo para usar datos reales.</p></div>`:""}`;
   },
 
@@ -541,7 +549,7 @@ const App={
 
   /* ---------- Sheets / forms ---------- */
   sheet(html){const r=$("#sheetRoot");r.innerHTML=`<div class="overlay" onclick="if(event.target===this)App.close()"><div class="sheet"><div class="grab"></div>${html}</div></div>`},
-  close(){$("#sheetRoot").innerHTML=""},
+  close(){$("#sheetRoot").innerHTML="";App._planConvert=null},
   segToggle(el){el.parentNode.querySelectorAll("button").forEach(b=>b.classList.remove("on"));el.classList.add("on")},
 
   conceptos(){const set=new Set(["Anticipo","Anticipos Banco","Adelanto Banco","Monotributo + OS","Plan de Ahorro","Movistar","Tarjeta de Credito Visa","Cuenta Corriente","Cta Cte","Otros Ingresos"]);
@@ -726,7 +734,11 @@ const App={
     let run=0;rows.forEach(r=>{run+=(+r.n||0);r.saldo=run});return rows;
   },
   canEditVac(r){if(r.auto)return false;if(App.isAdmin())return true;return r.por===App.s.role.persona&&(+r.n||0)<0&&App.enVentana(r.ts)},
+  vacSeg(){const v=App.s.vacView||"mias";return `<div class="seg" style="margin-bottom:12px"><button class="${v==="mias"?"on":""}" onclick="App.s.vacView='mias';App.renderChrome();App.render()">${App.isAdmin()?"Días":"Mis vacaciones"}</button><button class="${v==="plan"?"on":""}" onclick="App.s.vacView='plan';App.renderChrome();App.render()">Planificación</button></div>`},
   vVac(){
+    if(App.s.vacView==="plan")return App.vacSeg()+App.vPlan();
+    return App.vacSeg()+App.vVacMias()},
+  vVacMias(){
     const p=App.s.persona,rows=App.vacRows(p,App.s.vac),run=rows.length?rows[rows.length-1].saldo:0,g=App.grupo(p);
     const yNow=String(new Date().getFullYear());
     const tomadosAnio=rows.filter(r=>(r.f||"").startsWith(yNow)&&(+r.n||0)<0).reduce((a,r)=>a-(+r.n),0);
@@ -749,6 +761,57 @@ const App={
         <div class="amt"><div class="a ${plus?"pos":"neg"}">${plus?"+":"−"}${fmtN(Math.abs(+r.n))} d</div><div class="b">Saldo ${fmtN(r.saldo)}</div></div></div>`}).join("")+`</div>`;
     return html;
   },
+  /* ---- saldo visible entre socios ---- */
+  syncVacPub(p,vacObj){
+    if(!SOCIOS.includes(p)||!(App.isAdmin()||p===App.s.role.persona))return;
+    const r=App.vacRows(p,vacObj),d=r.length?r[r.length-1].saldo:0,cur=(App.s.vacPub||{})[p];
+    if(cur&&cur.dias===d)return;API.set("vacPublico/"+p,{dias:d,ts:API.ts()}).catch(()=>{})},
+  async syncVacPubTodos(){for(const p of SOCIOS){try{App.syncVacPub(p,(await API.get("vacaciones/"+p))||{})}catch(e){}}},
+  /* ---- planificación (fechas tentativas) ---- */
+  grupoKey(p){return SOCIOS.includes(p)?"socios":"chicos"},
+  planesList(key){const o=key==="socios"?App.s.planS:App.s.planC;return Object.entries(o||{}).map(([id,v])=>({id,key,...v}))},
+  vPlan(){
+    const me=App.s.role.persona,adm=App.isAdmin(),verSoc=adm||SOCIOS.includes(me),t=todayISO();
+    let html="";
+    if(verSoc){const vp=App.s.vacPub||{};
+      html+=`<div class="card"><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Días que le quedan a cada socio</div>
+        <div class="stats" style="grid-template-columns:repeat(3,1fr)">${SOCIOS.map(p=>{const d=vp[p];return `<div class="stat" style="text-align:center"><div class="k">${esc(App.pName(p))}</div><div class="v ${d&&d.dias<0?"neg":""}" style="font-size:20px">${d?fmtN(d.dias):"—"}</div><div class="d">días</div></div>`}).join("")}</div></div>`}
+    html+=`<button class="btn" style="margin-bottom:6px" onclick="App.formPlan()">+ Planear vacaciones (tentativo)</button>
+      <div class="hint" style="margin:0 4px 6px">Es solo para avisar a los demás. No descuenta días. Lo podés cambiar cuando quieras.</div>`;
+    const grupos=[["socios","Socios"],["chicos","Chicos"]];
+    for(const [key,tit] of grupos){
+      const ls=App.planesList(key).filter(x=>(x.hasta||x.desde)>=t).sort((a,b)=>a.desde.localeCompare(b.desde));
+      html+=`<div class="month"><span>${tit}</span><span>${ls.length||""}</span></div>`;
+      if(!ls.length){html+=`<div class="empty" style="padding:14px">Nadie tiene vacaciones planeadas.</div>`;continue}
+      html+=`<div class="list">`+ls.map(x=>{const c=App.contarVac(x.desde,x.hasta,x.p),mio=x.p===me||adm;
+        const sup=ls.filter(y=>y.id!==x.id&&y.desde<=x.hasta&&x.desde<=y.hasta).map(y=>App.pName(y.p));
+        return `<div class="row ${mio?"tap":""} ${x.p===me?"me":""}" ${mio?`onclick="App.formPlan('${key}','${x.id}')"`:""}>
+          <div class="mid"><div class="t">${esc(App.pName(x.p))}</div><div class="s">${dm(x.desde)} al ${dm(x.hasta)} · ${fmtN(c.tot)} día${c.tot!==1?"s":""}${x.nota?" · "+esc(x.nota):""}</div>
+          ${sup.length?`<div class="s" style="color:var(--warn);font-weight:600">⚠ Se superpone con ${esc([...new Set(sup)].join(", "))}</div>`:""}</div>
+          <div class="amt"><span class="badge ${x.desde<=t?"b-ok":"b-blue"}">${x.desde<=t?"En curso":"Tentativo"}</span></div></div>`}).join("")+`</div>`;
+    }
+    return html;
+  },
+  formPlan(key,id){
+    const me=App.s.role.persona,x=id?(key==="socios"?App.s.planS:App.s.planC)[id]:null,quien=x?x.p:me;
+    App._plan={key:key||App.grupoKey(me),id:id||null,p:quien};
+    App.sheet(`<h3>${x?"Vacaciones planeadas":"Planear vacaciones"}</h3><div class="hint">${esc(App.pName(quien,false))} · tentativo, no descuenta días</div>
+      <div class="g2"><div><label>Desde</label><input type="date" id="plD" value="${x?x.desde:todayISO()}" onchange="App.planCalc()"></div>
+      <div><label>Hasta</label><input type="date" id="plH" value="${x?x.hasta:todayISO()}" onchange="App.planCalc()"></div></div>
+      <div class="hint" id="plT" style="font-weight:600"></div>
+      <label>Nota (opcional)</label><input id="plN" value="${x?esc(x.nota||""):""}" placeholder="ej: viaje, a confirmar…">
+      <div class="err" id="plErr"></div>
+      ${x&&quien===me&&x.desde<=todayISO()?`<button class="btn" style="margin-top:14px;background:var(--pos)" onclick="App.planATomadas()">Ya me las tomé: cargarlas como vacaciones</button>`:""}
+      <div class="actions">${x?`<button class="btn danger" onclick="App.delPlan()">Borrar</button>`:`<button class="btn sec" onclick="App.close()">Cancelar</button>`}<button class="btn" onclick="App.savePlan()">Guardar</button></div>`);
+    App.planCalc();
+  },
+  planCalc(){const d=$("#plD").value;if($("#plH").value<d)$("#plH").value=d;const c=App.contarVac(d,$("#plH").value,App._plan.p);$("#plT").textContent="Serían "+fmtN(c.tot)+" día"+(c.tot!==1?"s":"")+" de vacaciones"},
+  async savePlan(){const P=App._plan,d=$("#plD").value,h=$("#plH").value;if(!d||!h){$("#plErr").textContent="Elegí las fechas";return}
+    const rec={p:P.p,desde:d,hasta:h,nota:$("#plN").value.trim(),ts:API.ts()};
+    try{await API.set(`planes/${P.key}/${P.id||API.newKey("planes/"+P.key)}`,rec);App.close();toast("Guardado")}catch(e){$("#plErr").textContent="No se pudo guardar: "+(e.message||e)}},
+  async delPlan(){const P=App._plan;if(!confirm("¿Borrar estas vacaciones planeadas?"))return;await API.remove(`planes/${P.key}/${P.id}`);App.close();toast("Borrado")},
+  planATomadas(){const P=App._plan,d=$("#plD").value,h=$("#plH").value;App._planConvert={key:P.key,id:P.id};App.s.persona=App.s.role.persona;App.formVac();
+    $("#vD").value=d;$("#vH").value=h;App.vacCalc()},
   fer(){return App.s.feriados||FERIADOS_DEFAULT},
   contarVac(a,b,p){ // días a descontar en un período
     const g=App.grupo(p),fer=App.fer();let d=pd(a),e=pd(b),tot=0,hab=0,sab=0,fs=[];
@@ -800,7 +863,9 @@ const App={
       rec={f,hasta:hs,c:"Vacaciones",n:-n,det:hs!==f?dm(f)+" al "+dm(hs):""};if(man!=="")rec.manual=true}
     rec.o=old?(old.o||Date.now()):Date.now();rec.por=old?.por||App.s.role.persona;rec.ts=old&&old.ts?old.ts:API.ts();
     if(old&&!App.canEditVac({...old,id})){$("#vErr").textContent="Ya pasaron los "+VENTANA_MIN+" minutos para corregirlo. Pedíselo a Maxi.";return}
-    try{if(id)await API.set(`vacaciones/${App.s.persona}/${id}`,rec);else await API.set(`vacaciones/${App.s.persona}/${API.newKey("vacaciones/"+App.s.persona)}`,rec);App.close();toast("Guardado")}
+    try{if(id)await API.set(`vacaciones/${App.s.persona}/${id}`,rec);else await API.set(`vacaciones/${App.s.persona}/${API.newKey("vacaciones/"+App.s.persona)}`,rec);
+      if(!id&&App._planConvert){const pc=App._planConvert;App._planConvert=null;try{await API.remove(`planes/${pc.key}/${pc.id}`)}catch(e){}}
+      App.close();toast("Guardado")}
     catch(e){$("#vErr").textContent="Error: "+(e.message||e)}
   },
   async delVac(id){if(!confirm("¿Borrar este registro?"))return;await API.remove(`vacaciones/${App.s.persona}/${id}`);App.close();toast("Borrado")},
@@ -1180,6 +1245,22 @@ const App={
   }
 };
 App.init();
+// Aviso de versión nueva: compara con la publicada en GitHub cada vez que se abre o se vuelve a la app
+(function(){
+  if(location.protocol==="file:")return;
+  let avisado=false;
+  async function chequear(){
+    if(avisado)return;
+    try{const r=await fetch(location.pathname+"?nc="+Date.now(),{cache:"no-store"});const t=await r.text();
+      const m=t.match(/APP_VERSION="([^"]+)"/);
+      if(m&&m[1]!==APP_VERSION){avisado=true;const d=document.createElement("div");
+        d.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:95;background:#f2b544;color:#0f2a44;border-radius:14px;padding:14px 16px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;cursor:pointer";
+        d.innerHTML='<span style="font-size:22px">⟳</span><span style="flex:1">Hay una versión nueva de la app.<br><span style="font-weight:500">Tocá acá para actualizar.</span></span>';
+        d.onclick=()=>{location.replace(location.pathname+"?v="+Date.now())};document.body.appendChild(d)}}catch(e){}
+  }
+  setTimeout(chequear,1500);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")chequear()});
+})();
 </script>
 </body>
 </html>
