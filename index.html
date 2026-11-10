@@ -466,7 +466,8 @@ const App={
   },
   vSab(){
     const rows=sortRows(App.s.sab),me=App.s.role.persona,t=todayISO(),adm=App.isAdmin();
-    const prox=rows.filter(r=>r.f>=t),hechos=rows.filter(r=>r.f<t).reverse();
+    const prox=rows.filter(r=>r.f>t),hechos=rows.filter(r=>r.f<=t).reverse();
+    const sinMarcar=hechos.filter(r=>!r.hizo).slice(0,3);
     const neto=App.sabNeto(rows),mio=ROTACION_SABADOS.includes(me);
     const debo=neto.filter(x=>x.debe===me),meDeben=neto.filter(x=>x.a===me);
     const next=prox[0],myNext=prox.find(r=>r.toca===me);
@@ -477,12 +478,13 @@ const App={
       <div class="stats">${mio?`<div class="stat"><div class="k">Sábados que debo</div><div class="v ${debo.length?"neg":""}">${debo.reduce((a,x)=>a+x.n,0)}</div><div class="d">${debo.map(x=>x.n+" a "+App.pName(x.a)).join(", ")||"Ninguno"}</div></div>
         <div class="stat"><div class="k">Me deben</div><div class="v ${meDeben.length?"pos":""}">${meDeben.reduce((a,x)=>a+x.n,0)}</div><div class="d">${meDeben.map(x=>App.pName(x.debe)+" "+x.n).join(", ")||"Ninguno"}</div></div>`:""}
         <div class="stat" style="grid-column:1/3"><div class="k">Saldo neto entre socios</div><div class="d" style="font-size:13px;color:var(--ink);margin-top:4px">${neto.length?neto.map(x=>`<b>${esc(App.pName(x.debe))}</b> le debe ${x.n} sábado${x.n>1?"s":""} a <b>${esc(App.pName(x.a))}</b>`).join("<br>"):"Todo compensado ✓"}</div></div>
-      </div><div class="hint" style="margin-top:8px">Cada cambio suma una deuda; cuando se devuelve con otro cambio, se compensa sola.</div></div>`;
+      </div>${(mio||adm)&&sinMarcar.length?`<button class="btn" style="margin-top:12px;background:var(--gold);color:var(--navy)" onclick="App.marcarSab('${sinMarcar[0].id}')">¿Quién hizo el sábado ${dm(sinMarcar[0].f)}? Marcar</button>`:""}<div class="hint" style="margin-top:8px">Cada cambio suma una deuda; cuando se devuelve con otro cambio, se compensa sola.</div></div>`;
     const row=r=>{const swap=r.hizo&&r.hizo!==r.toca,mine=r.toca===me||r.hizo===me;
       const st=!r.hizo?(r.f>=t?{c:"b-blue",t:r.f===(next&&next.f)?"Próximo":"Programado"}:{c:"b-grey",t:"Sin registrar"}):swap?{c:"b-warn",t:"Cubrió "+App.pName(r.hizo)}:{c:"b-ok",t:"✓ Cumplido"};
-      return `<div class="row ${mine&&!adm?"me":""} ${adm?"tap":""}" ${adm?`onclick="App.formSab('${r.id}')"`:""}>
+      const act=adm?`App.formSab('${r.id}')`:(mio&&r.f<=t?`App.marcarSab('${r.id}')`:"");
+      return `<div class="row ${mine&&!adm?"me":""} ${act?"tap":""}" ${act?`onclick="${act}"`:""}>
         <div class="day"><b>${pd(r.f).getDate()}</b><span>${MESES[pd(r.f).getMonth()].slice(0,3)}</span></div>
-        <div class="mid"><div class="t">Le toca: ${esc(App.pName(r.toca))}</div><div class="s">${r.hizo?"Lo hizo: "+esc(App.pName(r.hizo)):pd(r.f).getFullYear()}${r.nota?" · "+esc(r.nota):""}</div></div>
+        <div class="mid"><div class="t">Le toca: ${esc(App.pName(r.toca))}</div><div class="s">${r.hizo?"Lo hizo: "+esc(App.pName(r.hizo))+(r.hizoPor&&r.hizoPor!==r.hizo?" (marcó "+esc(App.pName(r.hizoPor))+")":""):(r.f<=t&&mio?'<span style="color:var(--warn);font-weight:600">Tocá para marcar quién lo hizo</span>':pd(r.f).getFullYear())}${r.nota?" · "+esc(r.nota):""}</div></div>
         <div class="amt"><span class="badge ${st.c}">${esc(st.t)}</span></div></div>`};
     const lim=App.s.proxAll?prox.length:6;
     html+=`<div class="month"><span>Próximos</span></div><div class="list">${prox.slice(0,lim).map(row).join("")||'<div class="empty">No hay sábados próximos cargados</div>'}</div>`;
@@ -791,6 +793,19 @@ const App={
     const rec={f,toca:$("#sT").value,hizo:$("#sH").value,nota:$("#sN").value.trim()};
     const key=id||"s"+f.replace(/-/g,"");
     try{await API.set("sabados/"+key,rec);App.close();toast("Guardado")}catch(e){$("#sErr").textContent="Error: "+(e.message||e)}
+  },
+  marcarSab(id){
+    const r=App.s.sab[id];if(!r)return;
+    App.sheet(`<h3>Sábado ${dmy(r.f).replace(/\/(\d\d)$/,"/20$1")}</h3><div class="hint">Le tocaba a <b>${esc(App.pName(r.toca))}</b>. ¿Quién fue a trabajar?</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">${ROTACION_SABADOS.map(p=>`<button class="btn ${r.hizo===p?"":"sec"}" style="font-size:18px;padding:16px" onclick="App.guardarHizo('${id}','${p}')">${esc(App.pName(p))}${p===r.toca?" (le tocaba)":""}${r.hizo===p?" ✓":""}</button>`).join("")}</div>
+      ${r.hizo?`<button class="btn small danger" style="margin-top:14px" onclick="App.guardarHizo('${id}','')">Borrar lo marcado</button>`:""}
+      <div class="hint" style="margin-top:12px">Si fue otro y no el que le tocaba, queda como cambio y se compensa solo.</div>
+      <div class="err" id="hzErr"></div>
+      <div class="actions"><button class="btn sec" onclick="App.close()">Cancelar</button></div>`);
+  },
+  async guardarHizo(id,p){
+    try{await API.update("sabados/"+id,{hizo:p,hizoPor:p?App.s.role.persona:""});App.close();toast(p?"Listo: lo hizo "+App.pName(p):"Marca borrada")}
+    catch(e){$("#hzErr").textContent="No se pudo guardar: "+(e.message||e)}
   },
   async delSab(id){if(!confirm("¿Borrar este sábado?"))return;await API.remove("sabados/"+id);App.close()},
   async genSabados(){
