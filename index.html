@@ -215,9 +215,11 @@ const DEFAULT_PERSONAS = {
 };
 const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
 const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
-const APP_VERSION="2026-11-10.3";
+const APP_VERSION="2026-11-11.1";
 const VENTANA_MIN=30; // minutos para corregir lo propio
-const DIAS_SOCIO=20, DIAS_HIJO=15, HORAS_POR_DIA=8;
+// Socios: 25 días desde 2026 (los años anteriores quedan en 20, no se tocan)
+const DIAS_SOCIO=25, DIAS_SOCIO_ANTES=20, DIAS_SOCIO_DESDE=2026, DIAS_HIJO=15, HORAS_POR_DIA=8;
+const diasSocio=y=>y>=DIAS_SOCIO_DESDE?DIAS_SOCIO:DIAS_SOCIO_ANTES;
 // Feriados nacionales (inamovibles + trasladables ya movidos). Editables desde Admin.
 const FERIADOS_DEFAULT={
  "2025-01-01":"Año Nuevo","2025-03-03":"Carnaval","2025-03-04":"Carnaval","2025-03-24":"Día de la Memoria","2025-04-02":"Malvinas","2025-04-18":"Viernes Santo",
@@ -248,6 +250,7 @@ const API = (()=>{
       login:(u,p)=>auth.signInWithEmailAndPassword(u+"@"+DOMINIO,p),
       logout:()=>auth.signOut(),
       on:(path,cb,err)=>{const r=db.ref(path);const h=r.on("value",s=>cb(s.val()),e=>{console.warn(path,e);err&&err(e)});return()=>r.off("value",h)},
+      onLast:(path,n,cb,err)=>{const r=db.ref(RAIZ+"/"+path).limitToLast(n);const h=r.on("value",s=>cb(s.val()),e=>{err&&err(e)});return()=>r.off("value",h)},
       get:path=>db.ref(path).get().then(s=>s.val()),
       set:(path,v)=>db.ref(path).set(v),
       update:(path,obj)=>db.ref(path||"/").update(obj),
@@ -284,6 +287,7 @@ const API = (()=>{
     login:async(u)=>{u=u.toLowerCase();if(!store.roles["demo-"+u]) throw {code:"auth/invalid-credential"};authCb({uid:"demo-"+u,email:u+"@"+DOMINIO})},
     logout:async()=>authCb(null),
     on:(path,cb)=>{const l={path,cb};ls.add(l);setTimeout(()=>cb(clone(getAt(path))),0);return()=>ls.delete(l)},
+    onLast:(path,n,cb)=>{const l={path,cb};ls.add(l);setTimeout(()=>cb(clone(getAt(path))),0);return()=>ls.delete(l)},
     get:async path=>clone(getAt(path)),
     set:async(path,v)=>{setAt(path,v);notify()},
     update:async(path,obj)=>{for(const k in obj) setAt((path||"")+"/"+k,obj[k]);notify()},
@@ -355,6 +359,7 @@ const App={
     App.s.offs.push(API.on("personas",v=>{App.s.personas=v||DEFAULT_PERSONAS;App.renderChrome();App.render()}));
     if(App.isAdmin()) App.s.offs.push(API.on("meta/ultimoRespaldo",v=>{App.s.ultResp=v||null;if(App.s.tab==="adm"||App.s.tab==="mov")App.render()},()=>{}));
     if(App.isAdmin()) App.s.offs.push(API.on("roles",v=>{App.s.roles=v||{};if(App.s.tab==="adm")App.render()}));
+    if(App.isAdmin()) App.s.offs.push(API.onLast("accesos",400,v=>{App.s.accesos=v||{};App.s.accErr=false;if(App.s.tab==="adm")App.render()},()=>{App.s.accErr=true}));
     App.s.offs.push(API.on("feriados",v=>{App.s.feriados=v||null;if(App.s.tab==="adm")App.render()},()=>{}));
     if(App.esHijo()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.calc=v||{};if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
     else App.s.offs.push(API.on("calculos",v=>{App.s.calc=v||{};App.syncPub();if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
@@ -367,6 +372,7 @@ const App={
     if(App.isAdmin())setTimeout(()=>App.syncVacPubTodos(),2500);
     if(App.canSab()) App.s.offs.push(API.on("sabados",v=>{App.s.sab=v||{};if(App.s.tab==="sab")App.render()},()=>{}));
     App.attachPersona();
+    App.s.infP=null;if(App.s.tab==="inf"){if(App.verInformes())App.infAttach();else App.s.tab="mov"}
     App.show("#app"); App.renderChrome(); App.render();
   },
   async bootstrap(){
@@ -387,7 +393,7 @@ const App={
     const norm=o=>JSON.stringify(Object.keys(o||{}).sort().map(k=>[k,o[k]]),(key,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
     if(norm(want)!==norm(App.s.pubCalc)){App.s.pubCalc=want;API.set("calculosPublico",want).catch(e=>console.warn(e))}},
   canSab(){return App.isAdmin()||!!(DEFAULT_PERSONAS[App.s.role.persona]||{}).sabados},
-  detach(){App.s.offs.forEach(f=>f&&f());App.s.offs=[];App.s.pOffs&&App.s.pOffs.forEach(f=>f());App.s.pOffs=[]},
+  detach(){App.s.offs.forEach(f=>f&&f());App.s.offs=[];App.s.pOffs&&App.s.pOffs.forEach(f=>f());App.s.pOffs=[];App.infDetach()},
   attachPersona(){
     (App.s.pOffs||[]).forEach(f=>f());
     const p=App.s.persona;App.s.mov={};App.s.vac={};App.s.vales={};
@@ -400,13 +406,13 @@ const App={
   personaList(){return Object.entries(App.s.personas).map(([id,v])=>({id,...v})).sort((a,b)=>(a.orden||9)-(b.orden||9))},
   pName(id,short=true){const p=App.s.personas[id]||DEFAULT_PERSONAS[id];return p?(short?p.corto:p.nombre):cap(id||"")},
   setPersona(id){App.s.persona=id;App.attachPersona();App.renderChrome();App.render()},
-  setTab(t){App.s.tab=t;App.renderChrome();App.render();scrollTo(0,0)},
+  setTab(t){if(t==="inf"&&App.s.tab!=="inf")App.infAttach();else if(t!=="inf")App.infDetach();App.s.tab=t;App.renderChrome();App.render();scrollTo(0,0)},
 
   renderChrome(){
     const s=App.s,me=s.role.persona;
     $("#hHello").textContent=App.isAdmin()?"Administrador · "+App.pName(me):"Hola, "+App.pName(me);
     const enCalc=s.tab==="mov"&&s.movView==="calc";
-    $("#hWho").textContent=enCalc?"Cálculo de retiros":s.tab==="mov"&&s.movView==="vales"&&!App.isAdmin()?"Mis vales":s.tab==="vac"&&s.vacView==="plan"?"Planificación de vacaciones":App.isAdmin()&&(s.tab==="mov"||s.tab==="vac")?App.pName(s.persona,false):s.tab==="sab"?"Sábados":s.tab==="calc"?"Cálculo de retiros":s.tab==="adm"?"Administración":App.pName(me,false);
+    $("#hWho").textContent=enCalc?"Cálculo de retiros":s.tab==="mov"&&s.movView==="vales"&&!App.isAdmin()?"Mis vales":s.tab==="vac"&&s.vacView==="plan"?"Planificación de vacaciones":App.isAdmin()&&(s.tab==="mov"||s.tab==="vac")?App.pName(s.persona,false):s.tab==="sab"?"Sábados":s.tab==="inf"?"Informes":s.tab==="calc"?"Cálculo de retiros":s.tab==="adm"?"Administración":App.pName(me,false);
     const pc=$("#personaChips");
     const showChips=App.isAdmin()&&((s.tab==="mov"&&!enCalc)||(s.tab==="vac"&&s.vacView!=="plan"));
     pc.classList.toggle("hidden",!showChips);
@@ -414,6 +420,7 @@ const App={
     const tabs=[["mov","Anticipos",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'],
       ["vac","Vacaciones",'<path d="M2 20h20M5 20l7-15 7 15M9 13h6"/>']];
     if(App.canSab()) tabs.push(["sab","Sábados",'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>']);
+    if(App.verInformes()) tabs.push(["inf","Informes",'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>']);
     if(App.isAdmin()) tabs.push(["adm","Admin",'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>']);
     $("#nav").innerHTML=tabs.map(([k,l,ic])=>`<button class="${s.tab===k?"on":""}" onclick="App.setTab('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}</button>`).join("");
     $("#fab").classList.toggle("hidden",!(App.isAdmin()&&s.tab==="sab"));
@@ -421,7 +428,7 @@ const App={
   render(){
     if(!App.s.role) return;
     const t=App.s.tab;
-    $("#view").innerHTML=t==="mov"?App.movSeg()+(App.s.movView==="calc"?App.vCalc():App.s.movView==="vales"?App.bannerPend()+App.vVales():App.bannerResp()+App.bannerPend()+App.vMov()):t==="vac"?App.vVac():t==="sab"?App.vSab():t==="calc"?App.vCalc():App.vAdm();
+    $("#view").innerHTML=t==="mov"?App.movSeg()+(App.s.movView==="calc"?App.vCalc():App.s.movView==="vales"?App.bannerPend()+App.vVales():App.bannerResp()+App.bannerPend()+App.vMov()):t==="vac"?App.vVac():t==="sab"?App.vSab():t==="inf"?App.vInf():t==="calc"?App.vCalc():App.vAdm();
   },
   yearChips(key,years,sinTodo){
     if(sinTodo&&App.s.year[key]==="todo")delete App.s.year[key];
@@ -506,6 +513,102 @@ const App={
     if(hechos.length>hl)html+=`<button class="btn sec" style="margin-top:8px" onclick="App.s.hechAll=true;App.render()">Ver ${hechos.length-hl} anteriores</button>`;
     return html;
   },
+  /* ---------- Informes (solo socios) ---------- */
+  verInformes(){return App.isAdmin()||SOCIOS.includes(App.s.role.persona)},
+  puedeBajar(p){return App.isAdmin()||p===App.s.role.persona}, // cada socio baja solo el suyo
+  infAttach(){
+    App.infDetach();App.s.infD={mov:{},vac:{}};App.s.infErr={};App.s.infLogged=new Set();
+    if(!App.s.infP)App.s.infP=SOCIOS.includes(App.s.role.persona)?App.s.role.persona:SOCIOS[0];
+    SOCIOS.forEach(p=>[["mov","movimientos/"],["vac","vacaciones/"]].forEach(([t,base])=>{
+      App.s.infOffs.push(API.on(base+p,v=>{App.s.infD[t][p]=v||{};delete App.s.infErr[t+p];if(App.s.tab==="inf")App.render()},
+        ()=>{App.s.infErr[t+p]=true;if(App.s.tab==="inf")App.render()}))}));
+  },
+  infDetach(){(App.s.infOffs||[]).forEach(f=>f&&f());App.s.infOffs=[]},
+  infDesde(){return (new Date().getFullYear()-1)+"-01-01"}, // año anterior + año actual
+  infDatos(t,p){ // filas del período + saldo inicial y final
+    const obj=App.s.infD[t][p];if(obj===undefined)return null;
+    const all=t==="mov"?saldoMov(obj):App.vacRows(p,obj),desde=App.infDesde();
+    let i0=all.findIndex(r=>(r.f||"")>=desde);if(i0<0)i0=all.length;
+    return {rows:all.slice(i0),ini:i0>0?all[i0-1].saldo:0,fin:all.length?all[all.length-1].saldo:0,desde};
+  },
+  infLog(accion,t,p){ // registro silencioso, solo lo lee el admin
+    if(App.isAdmin())return;
+    const k=accion+t+p;if(accion==="vio"){if(App.s.infLogged.has(k))return;App.s.infLogged.add(k)}
+    try{Promise.resolve(API.push("accesos",{uid:App.s.user.uid,quien:App.s.role.persona,accion,informe:t==="mov"?"anticipos":"vacaciones",de:p,ts:API.ts()})).catch(()=>{})}catch(e){}
+  },
+  vInf(){
+    const s=App.s,me=s.role.persona,p=s.infP,t=s.infT||"mov";s.infT=t;
+    let html=`<div class="chips light" style="padding-top:0">${App.personaList().filter(x=>SOCIOS.includes(x.id)).map(x=>`<button class="chip ${x.id===p?"on":""}" onclick="App.s.infP='${x.id}';App.render()">${esc(x.corto)}</button>`).join("")}</div>
+      <div class="seg" style="margin:6px 0 12px"><button class="${t==="mov"?"on":""}" onclick="App.s.infT='mov';App.render()">Anticipos</button><button class="${t==="vac"?"on":""}" onclick="App.s.infT='vac';App.render()">Vacaciones</button></div>`;
+    if(s.infErr[t+p])return html+`<div class="empty">No se pudo leer este informe.${App.isAdmin()?" Revisá que estén publicadas las reglas nuevas de Firebase.":" Avisale a Maxi."}</div>`;
+    const d=App.infDatos(t,p);if(!d)return html+`<div class="empty">Cargando…</div>`;
+    App.infLog("vio",t,p);
+    const mov=t==="mov",hoy=todayISO();
+    html+=`<div class="card hero"><div class="lbl">${mov?"Anticipos y retiros":"Vacaciones"} · ${esc(App.pName(p,false))}</div>
+      <div class="big ${d.fin>=0?"pos":"neg"}">${mov?money(d.fin):fmtN(d.fin)+' <span style="font-size:17px;font-weight:600">días</span>'}</div>
+      <div class="sub" style="color:var(--muted)">${mov?"Saldo":"Días disponibles"} al ${dmy(hoy)}</div>
+      <div class="stats"><div class="stat"><div class="k">Saldo al ${dmy(d.desde)}</div><div class="v">${mov?money(d.ini):fmtN(d.ini)+" días"}</div></div>
+      <div class="stat"><div class="k">Período</div><div class="v" style="font-size:13px">${dmy(d.desde)} al ${dmy(hoy)}</div><div class="d">${d.rows.length} movimiento${d.rows.length!==1?"s":""}</div></div></div>
+      ${App.puedeBajar(p)?`<button class="btn" style="margin-top:12px" onclick="App.infPDF()">Descargar PDF</button>`:""}</div>`;
+    if(!d.rows.length)return html+`<div class="empty">Sin movimientos en el período.</div>`;
+    return html+`<div class="list">`+d.rows.map(r=>{const v=mov?(+r.d||0)-(+r.h||0):(+r.n||0),plus=v>0,dt=pd(r.f);
+      const sub=[dmy(r.f),mov?(r.s!=null&&r.s!==""?"saldo ajustado":""):(r.auto?"automático":r.det||"")].filter(Boolean).join(" · ");
+      return `<div class="row"><div class="day"><b>${dt.getDate()}</b><span>${MESES[dt.getMonth()].slice(0,3)}</span></div>
+        <div class="mid"><div class="t">${esc(r.c||(mov?"Movimiento":"Vacaciones"))}</div><div class="s">${esc(sub)}</div></div>
+        <div class="amt"><div class="a ${plus?"pos":"neg"}">${plus?"+":"−"}${mov?money(Math.abs(v)):fmtN(Math.abs(v))+" d"}</div><div class="b">Saldo ${mov?money(r.saldo):fmtN(r.saldo)}</div></div></div>`}).join("")+`</div>`;
+  },
+  loadPDF(){
+    const ld=src=>new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s)});
+    if(window.jspdf&&window.jspdf.jsPDF.API.autoTable)return Promise.resolve();
+    return (window.jspdf?Promise.resolve():ld("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"))
+      .then(()=>ld("https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"))},
+  async infPDF(){
+    const p=App.s.infP,t=App.s.infT;if(!App.puedeBajar(p)){toast("Solo podés descargar tu propio informe");return}
+    const d=App.infDatos(t,p);if(!d)return;
+    try{await App.loadPDF()}catch(e){toast("No se pudo generar el PDF (¿sin internet?)");return}
+    const mov=t==="mov",tx=x=>String(x??"").replace(/−/g,"-").replace(/[  ]/g," "),m=v=>tx(money(v));
+    const full=x=>dmy(x).replace(/\/(\d\d)$/,"/20$1"),hoy=full(todayISO()),desde=full(d.desde),dias=v=>fmtN(v)+" días";
+    const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),W=doc.internal.pageSize.getWidth();
+    doc.setFillColor(15,42,68);doc.rect(0,0,W,24,"F");
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(14);
+    doc.text(mov?"Informe de anticipos y retiros":"Informe de vacaciones",14,11);
+    doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.text("Carlos Martin e Hijos S.A.",14,18);
+    doc.setTextColor(20,33,46);doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text(tx(App.pName(p,false)),14,34);
+    doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.text(`Período: ${desde} al ${hoy}`,14,40);
+    const box=(x,lbl,val)=>{doc.setDrawColor(227,232,238);doc.setFillColor(243,245,248);doc.roundedRect(x,45,58,16,2,2,"FD");
+      doc.setFontSize(7.5);doc.setTextColor(107,122,137);doc.text(lbl,x+3,50.5);
+      doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(20,33,46);doc.text(val,x+3,57.5);doc.setFont("helvetica","normal")};
+    box(14,"SALDO AL "+desde,mov?m(d.ini):dias(d.ini));
+    box(76,"MOVIMIENTOS DEL PERÍODO",String(d.rows.length));
+    box(138,(mov?"SALDO AL ":"DÍAS DISPONIBLES AL ")+hoy,mov?m(d.fin):dias(d.fin));
+    const head=mov?[["Fecha","Concepto","Ingreso (+)","Descuento (-)","Saldo"]]:[["Fecha","Concepto","Detalle","Días","Saldo"]];
+    const body=[[desde,"Saldo inicial","","",mov?m(d.ini):fmtN(d.ini)]];
+    d.rows.forEach(r=>body.push(mov?[full(r.f),tx(r.c)+(r.s!=null&&r.s!==""?" (saldo ajustado)":""),+r.d?m(+r.d):"",+r.h?m(+r.h):"",m(r.saldo)]
+      :[full(r.f),tx(r.c),tx(r.auto?"Automático":r.det||""),(+r.n>0?"+":"")+fmtN(+r.n),fmtN(r.saldo)]));
+    body.push([hoy,mov?"Saldo final":"Días disponibles","","",mov?m(d.fin):fmtN(d.fin)]);
+    doc.autoTable({head,body,startY:67,theme:"grid",margin:{left:14,right:14,bottom:16},
+      styles:{font:"helvetica",fontSize:8.5,cellPadding:1.8,lineColor:[227,232,238],lineWidth:.2,textColor:[20,33,46]},
+      headStyles:{fillColor:[15,42,68],textColor:255,fontStyle:"bold"},
+      columnStyles:mov?{0:{cellWidth:22},2:{halign:"right",cellWidth:30},3:{halign:"right",cellWidth:30},4:{halign:"right",cellWidth:32}}
+        :{0:{cellWidth:22},3:{halign:"right",cellWidth:18},4:{halign:"right",cellWidth:18}},
+      didParseCell:h=>{if(h.section==="body"&&(h.row.index===0||h.row.index===body.length-1)){h.cell.styles.fontStyle="bold";h.cell.styles.fillColor=[243,245,248]}}});
+    const n=doc.internal.getNumberOfPages();
+    for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(107,122,137);doc.text(`Página ${i} de ${n}`,W-14,289,{align:"right"})}
+    doc.save(`${App.pName(p)}_${mov?"anticipos":"vacaciones"}_${todayISO()}.pdf`);
+    App.infLog("pdf",t,p);
+  },
+  vAccesos(){ // registro de informes, solo admin
+    const ls=Object.values(App.s.accesos||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)),lim=App.s.accAll?ls.length:25;
+    const inf=x=>x.informe==="vacaciones"?"Vacaciones":"Anticipos";
+    const txt=x=>{const q="<b>"+esc(App.pName(x.quien))+"</b>",propio=x.de===x.quien;
+      return x.accion==="pdf"?`${q} descargó ${propio?"su PDF de "+inf(x):"el PDF de "+inf(x)+" de "+esc(App.pName(x.de))}`:`${q} vio ${propio?"sus "+inf(x):inf(x)+" de "+esc(App.pName(x.de))}`};
+    const fh=ts=>ts?new Date(ts).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"";
+    return `<div class="card adm"><h4>Registro de informes</h4><p>Quién abrió o descargó informes en la pestaña Informes. Solo lo ves vos y nadie lo puede borrar.</p>
+      ${App.s.accErr?`<div class="hint" style="color:var(--warn)">No se pudo leer el registro: falta publicar las reglas nuevas de Firebase.</div>`
+      :ls.length?ls.slice(0,lim).map(x=>`<div class="urow"><div style="font-size:14px">${txt(x)}</div><div class="hint" style="margin:0;white-space:nowrap">${fh(x.ts)}</div></div>`).join("")
+        +(ls.length>lim?`<button class="btn sec small" style="margin-top:8px" onclick="App.s.accAll=true;App.render()">Ver ${ls.length-lim} más</button>`:"")
+      :`<div class="hint">Todavía nadie entró a Informes.</div>`}</div>`;
+  },
   /* ---------- Admin ---------- */
   vAdm(){
     const roles=App.s.roles||{};const byP={};
@@ -515,6 +618,7 @@ const App={
         return `<div class="urow"><div><b>${esc(p.nombre)}</b><div class="hint" style="margin:2px 0 0">${us.length?us.map(u=>"Usuario: <b>"+esc(u.usuario||"?")+"</b>"+(u.rol==="admin"?" · admin":"")).join("<br>"):"Sin acceso"}</div></div>
         <div style="display:flex;gap:6px">${us.length?us.filter(u=>u.uid!==App.s.user.uid).map(u=>`<button class="btn small danger" onclick="App.quitarAcceso('${u.uid}')">Quitar</button>`).join(""):`<button class="btn small" onclick="App.formUser('${p.id}')">Crear acceso</button>`}</div></div>`}).join("")}
     </div>
+    ${App.vAccesos()}
     <div class="card adm"><h4>Importar desde Excel</h4><p>Elegí uno o varios de tus Excel: <b>RC.xlsx</b>, <b>Retiros (sin clave)</b> y <b>sabados.xls</b>. La app reconoce cada uno, te muestra los saldos y recién ahí te pide confirmar. Reemplaza solo los datos de las personas y hojas que vienen en los archivos.</p>
       <input type="file" id="xlsFiles" accept=".xls,.xlsx" multiple style="padding:9px"><div style="height:10px"></div>
       <button class="btn" onclick="App.importExcel()">Leer Excel</button></div>
@@ -725,11 +829,11 @@ const App={
   /* ---------- Vacaciones ---------- */
   grupo(p){return SOCIOS.includes(p)?"socio":"hijo"},
   vacRows(p,obj){ // filas guardadas + devengamiento anual automático
-    const rows=sortRows(obj);const g=App.grupo(p),dias=g==="socio"?DIAS_SOCIO:DIAS_HIJO;
+    const rows=sortRows(obj);const g=App.grupo(p),dias=y=>g==="socio"?diasSocio(y):DIAS_HIJO;
     const yrs=rows.map(r=>{const m=String(r.c||"").match(/^d[ií]as\s*(\d{4})/i);return m?+m[1]:null}).filter(Boolean);
     const today=todayISO();let y=yrs.length?Math.max(...yrs)+1:new Date().getFullYear();
     for(;;y++){const f=g==="socio"?y+"-01-01":y+"-12-31";if(f>today)break;
-      rows.push({id:"auto"+y,f,c:"Días "+y,det:"Devengado automático",n:dias,o:0,auto:true})}
+      rows.push({id:"auto"+y,f,c:"Días "+y,det:"Devengado automático",n:dias(y),o:0,auto:true})}
     rows.sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
     let run=0;rows.forEach(r=>{run+=(+r.n||0);r.saldo=run});return rows;
   },
