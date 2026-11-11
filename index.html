@@ -215,7 +215,7 @@ const DEFAULT_PERSONAS = {
 };
 const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
 const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
-const APP_VERSION="2026-11-11.1";
+const APP_VERSION="2026-11-11.2";
 const VENTANA_MIN=30; // minutos para corregir lo propio
 // Socios: 25 días desde 2026 (los años anteriores quedan en 20, no se tocan)
 const DIAS_SOCIO=25, DIAS_SOCIO_ANTES=20, DIAS_SOCIO_DESDE=2026, DIAS_HIJO=15, HORAS_POR_DIA=8;
@@ -250,7 +250,7 @@ const API = (()=>{
       login:(u,p)=>auth.signInWithEmailAndPassword(u+"@"+DOMINIO,p),
       logout:()=>auth.signOut(),
       on:(path,cb,err)=>{const r=db.ref(path);const h=r.on("value",s=>cb(s.val()),e=>{console.warn(path,e);err&&err(e)});return()=>r.off("value",h)},
-      onLast:(path,n,cb,err)=>{const r=db.ref(RAIZ+"/"+path).limitToLast(n);const h=r.on("value",s=>cb(s.val()),e=>{err&&err(e)});return()=>r.off("value",h)},
+      onLast:(path,n,cb,err)=>{const r=db.ref(path).limitToLast(n);const h=r.on("value",s=>cb(s.val()),e=>{err&&err(e)});return()=>r.off("value",h)},
       get:path=>db.ref(path).get().then(s=>s.val()),
       set:(path,v)=>db.ref(path).set(v),
       update:(path,obj)=>db.ref(path||"/").update(obj),
