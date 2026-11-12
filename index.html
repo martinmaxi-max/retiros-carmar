@@ -215,7 +215,7 @@ const DEFAULT_PERSONAS = {
 };
 const ROTACION_SABADOS = ["maxi","rodi","carlitos"];
 const SOCIOS=["maxi","rodi","carlitos"], HIJOS=["franco","agos","mati"];
-const APP_VERSION="2026-11-11.2";
+const APP_VERSION="2026-11-11.3";
 const VENTANA_MIN=30; // minutos para corregir lo propio
 // Socios: 25 días desde 2026 (los años anteriores quedan en 20, no se tocan)
 const DIAS_SOCIO=25, DIAS_SOCIO_ANTES=20, DIAS_SOCIO_DESDE=2026, DIAS_HIJO=15, HORAS_POR_DIA=8;
@@ -314,7 +314,12 @@ const pd=s=>{const [y,m,d]=(s||"").split("-").map(Number);return new Date(y,(m||
 const dmy=s=>{if(!s)return"";const [y,m,d]=s.split("-");return d+"/"+m+"/"+y.slice(2)};
 const dm=s=>{if(!s)return"";const [,m,d]=s.split("-");return +d+"/"+ +m};
 const toast=msg=>{const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)};
-const saldoMov=obj=>{const r=Object.entries(obj||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.o||0)-(b.o||0)||(a.f||"").localeCompare(b.f||""));let run=0;r.forEach(x=>{run=(x.s!=null&&x.s!=="")?+x.s:run+(+x.d||0)-(+x.h||0);x.saldo=run});return r};
+// Orden del saldo: primero lo importado del Excel (o chico, en el orden de la planilla, no se toca);
+// después lo cargado en la app (o = fecha de carga) ordenado por FECHA del movimiento.
+const esImportado=x=>(+x.o||0)<1e11;
+const saldoMov=obj=>{const r=Object.entries(obj||{}).map(([id,v])=>({id,...v})).sort((a,b)=>{const ia=esImportado(a),ib=esImportado(b);
+  if(ia&&ib)return (a.o||0)-(b.o||0)||(a.f||"").localeCompare(b.f||"");if(ia!==ib)return ia?-1:1;
+  return (a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0)});let run=0;r.forEach(x=>{run=(x.s!=null&&x.s!=="")?+x.s:run+(+x.d||0)-(+x.h||0);x.saldo=run});return r};
 const sortRows=obj=>Object.entries(obj||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.f||"").localeCompare(b.f||"")||(a.o||0)-(b.o||0));
 const habiles=(a,b)=>{if(!a||!b)return 0;let d=pd(a),e=pd(b),n=0;if(e<d)return 0;while(d<=e){const w=d.getDay();if(w>0&&w<6)n++;d.setDate(d.getDate()+1)}return n};
 const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
@@ -359,7 +364,7 @@ const App={
     App.s.offs.push(API.on("personas",v=>{App.s.personas=v||DEFAULT_PERSONAS;App.renderChrome();App.render()}));
     if(App.isAdmin()) App.s.offs.push(API.on("meta/ultimoRespaldo",v=>{App.s.ultResp=v||null;if(App.s.tab==="adm"||App.s.tab==="mov")App.render()},()=>{}));
     if(App.isAdmin()) App.s.offs.push(API.on("roles",v=>{App.s.roles=v||{};if(App.s.tab==="adm")App.render()}));
-    if(App.isAdmin()) App.s.offs.push(API.onLast("accesos",400,v=>{App.s.accesos=v||{};App.s.accErr=false;if(App.s.tab==="adm")App.render()},()=>{App.s.accErr=true}));
+    if(App.isAdmin()) App.s.offs.push(API.onLast("accesos",10,v=>{App.s.accesos=v||{};App.s.accErr=false;if(App.s.tab==="adm")App.render()},()=>{App.s.accErr=true}));
     App.s.offs.push(API.on("feriados",v=>{App.s.feriados=v||null;if(App.s.tab==="adm")App.render()},()=>{}));
     if(App.esHijo()) App.s.offs.push(API.on("calculosPublico",v=>{App.s.calc=v||{};if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
     else App.s.offs.push(API.on("calculos",v=>{App.s.calc=v||{};App.syncPub();if(App.s.tab==="mov"&&App.s.movView==="calc")App.render()},()=>{}));
@@ -598,15 +603,14 @@ const App={
     App.infLog("pdf",t,p);
   },
   vAccesos(){ // registro de informes, solo admin
-    const ls=Object.values(App.s.accesos||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)),lim=App.s.accAll?ls.length:25;
+    const ls=Object.values(App.s.accesos||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10),lim=10;
     const inf=x=>x.informe==="vacaciones"?"Vacaciones":"Anticipos";
     const txt=x=>{const q="<b>"+esc(App.pName(x.quien))+"</b>",propio=x.de===x.quien;
       return x.accion==="pdf"?`${q} descargó ${propio?"su PDF de "+inf(x):"el PDF de "+inf(x)+" de "+esc(App.pName(x.de))}`:`${q} vio ${propio?"sus "+inf(x):inf(x)+" de "+esc(App.pName(x.de))}`};
     const fh=ts=>ts?new Date(ts).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"";
-    return `<div class="card adm"><h4>Registro de informes</h4><p>Quién abrió o descargó informes en la pestaña Informes. Solo lo ves vos y nadie lo puede borrar.</p>
+    return `<div class="card adm"><h4>Registro de informes</h4><p>Las últimas 10 veces que alguien abrió o descargó un informe. Solo lo ves vos.</p>
       ${App.s.accErr?`<div class="hint" style="color:var(--warn)">No se pudo leer el registro: falta publicar las reglas nuevas de Firebase.</div>`
       :ls.length?ls.slice(0,lim).map(x=>`<div class="urow"><div style="font-size:14px">${txt(x)}</div><div class="hint" style="margin:0;white-space:nowrap">${fh(x.ts)}</div></div>`).join("")
-        +(ls.length>lim?`<button class="btn sec small" style="margin-top:8px" onclick="App.s.accAll=true;App.render()">Ver ${ls.length-lim} más</button>`:"")
       :`<div class="hint">Todavía nadie entró a Informes.</div>`}</div>`;
   },
   /* ---------- Admin ---------- */
@@ -880,7 +884,7 @@ const App={
     if(verSoc){const vp=App.s.vacPub||{};
       html+=`<div class="card"><div class="lbl" style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Días que le quedan a cada socio</div>
         <div class="stats" style="grid-template-columns:repeat(3,1fr)">${SOCIOS.map(p=>{const d=vp[p];return `<div class="stat" style="text-align:center"><div class="k">${esc(App.pName(p))}</div><div class="v ${d&&d.dias<0?"neg":""}" style="font-size:20px">${d?fmtN(d.dias):"—"}</div><div class="d">días</div></div>`}).join("")}</div></div>`}
-    html+=`<button class="btn" style="margin-bottom:6px" onclick="App.formPlan()">+ Planear vacaciones (tentativo)</button>
+    html+=`<button class="btn" style="margin-bottom:6px" onclick="App.formPlan()">+ Planear vacaciones</button>
       <div class="hint" style="margin:0 4px 6px">Es solo para avisar a los demás. No descuenta días. Lo podés cambiar cuando quieras.</div>`;
     const grupos=[["socios","Socios"],["chicos","Chicos"]];
     for(const [key,tit] of grupos){
@@ -892,14 +896,14 @@ const App={
         return `<div class="row ${mio?"tap":""} ${x.p===me?"me":""}" ${mio?`onclick="App.formPlan('${key}','${x.id}')"`:""}>
           <div class="mid"><div class="t">${esc(App.pName(x.p))}</div><div class="s">${dm(x.desde)} al ${dm(x.hasta)} · ${fmtN(c.tot)} día${c.tot!==1?"s":""}${x.nota?" · "+esc(x.nota):""}</div>
           ${sup.length?`<div class="s" style="color:var(--warn);font-weight:600">⚠ Se superpone con ${esc([...new Set(sup)].join(", "))}</div>`:""}</div>
-          <div class="amt"><span class="badge ${x.desde<=t?"b-ok":"b-blue"}">${x.desde<=t?"En curso":"Tentativo"}</span></div></div>`}).join("")+`</div>`;
+          ${x.desde<=t?`<div class="amt"><span class="badge b-ok">En curso</span></div>`:""}</div>`}).join("")+`</div>`;
     }
     return html;
   },
   formPlan(key,id){
     const me=App.s.role.persona,x=id?(key==="socios"?App.s.planS:App.s.planC)[id]:null,quien=x?x.p:me;
     App._plan={key:key||App.grupoKey(me),id:id||null,p:quien};
-    App.sheet(`<h3>${x?"Vacaciones planeadas":"Planear vacaciones"}</h3><div class="hint">${esc(App.pName(quien,false))} · tentativo, no descuenta días</div>
+    App.sheet(`<h3>${x?"Vacaciones planeadas":"Planear vacaciones"}</h3><div class="hint">${esc(App.pName(quien,false))} · no descuenta días</div>
       <div class="g2"><div><label>Desde</label><input type="date" id="plD" value="${x?x.desde:todayISO()}" onchange="App.planCalc()"></div>
       <div><label>Hasta</label><input type="date" id="plH" value="${x?x.hasta:todayISO()}" onchange="App.planCalc()"></div></div>
       <div class="hint" id="plT" style="font-weight:600"></div>
@@ -1349,18 +1353,16 @@ const App={
   }
 };
 App.init();
-// Aviso de versión nueva: compara con la publicada en GitHub cada vez que se abre o se vuelve a la app
+// Actualización silenciosa: si en GitHub hay otra versión, recarga sola (sin avisar),
+// solo cuando no hay ninguna ventana abierta (formulario, firma, vale).
 (function(){
   if(location.protocol==="file:")return;
-  let avisado=false;
+  let recargando=false;
   async function chequear(){
-    if(avisado)return;
+    if(recargando)return;
     try{const r=await fetch(location.pathname+"?nc="+Date.now(),{cache:"no-store"});const t=await r.text();
       const m=t.match(/APP_VERSION="([^"]+)"/);
-      if(m&&m[1]!==APP_VERSION){avisado=true;const d=document.createElement("div");
-        d.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:95;background:#f2b544;color:#0f2a44;border-radius:14px;padding:14px 16px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;cursor:pointer";
-        d.innerHTML='<span style="font-size:22px">⟳</span><span style="flex:1">Hay una versión nueva de la app.<br><span style="font-weight:500">Tocá acá para actualizar.</span></span>';
-        d.onclick=()=>{location.replace(location.pathname+"?v="+Date.now())};document.body.appendChild(d)}}catch(e){}
+      if(m&&m[1]!==APP_VERSION&&!document.querySelector("#sheetRoot .overlay")){recargando=true;location.replace(location.pathname+"?v="+Date.now())}}catch(e){}
   }
   setTimeout(chequear,1500);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")chequear()});
